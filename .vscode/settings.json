@@ -3,5 +3,13 @@
     "source.fixAll": "explicit",
     "source.organizeImports": "explicit",
     "source.sortMembers": "explicit"
+  },
+  "tailwindCSS.experimental.classRegex": [
+    ["className=\"([^\"]*)\"", "g"],
+    ["className=`([^`]*)`", "g"],
+    ["class=\"([^\"]*)\"", "g"]
+  ],
+  "editor.quickSuggestions": {
+    "strings": true
   }
 }

@@ -39,7 +39,7 @@ export default function Layout() {
           paddingTop: 10,
           paddingBottom: 10,
           justifyContent: "center",
-          marginHorizontal: 70,
+          marginHorizontal: 100,
           marginBottom: 34,
           borderRadius: 40,
           backgroundColor: "#030014", // pure black base

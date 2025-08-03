@@ -109,7 +109,7 @@ const firebaseConfig = {
 
 | Dashboard                                                | Transactions                                                 | Profile                                              |
 | -------------------------------------------------------- | ------------------------------------------------------------ | ---------------------------------------------------- |
-| ![Dashboard](./assets/images/screenshots/Dashboard.jpeg) | ![Transaction](./assets/images/screenshots/Transaction.jpeg) | ![Profile](./assets/images/screenshots/Profile.jpeg) |
+| ![Dashboard](./assets/images/screenshots/homePageScreenshot.png) | ![Transaction](./assets/images/screenshots/transactionScreenshot.png) | ![Profile](./assets/images/screenshots/profileScreenshot.png) |
 
 ---
 

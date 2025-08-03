@@ -1,50 +1,135 @@
-# Welcome to your Expo app 👋
+Sure, here’s a clean and professional `README.md` file for your **Kharcha** React Native financial tracker app using Firebase, Expo, and TypeScript:
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+---
 
-## Get started
+````markdown
+# 💸 Kharcha - Personal Finance Tracker
 
-1. Install dependencies
+Kharcha is a sleek, modern personal finance tracking app built with **React Native**, **Expo**, and **Firebase**. It allows users to manage their income, expenses, and savings seamlessly — all stored locally with rich visualizations and recurring transaction support.
 
-   ```bash
-   npm install
-   ```
+---
 
-2. Start the app
+## 🚀 Features
 
-   ```bash
-   npx expo start
-   ```
+- 📊 **Dashboard**: Visual overview of total balance, expenses, and income.
+- 🧾 **Transactions**: Add, filter, edit, and delete expenses/income.
+- 🗓️ **Recurring Transactions**: Automatically log daily, weekly, or monthly recurring entries.
+- 🏦 **Multiple Accounts**: Track balances from cash, bank, eSewa, Khalti, etc.
+- 🧠 **Native Design**: Built using `NativeWind` and custom modals for smooth UX.
+- ☁️ **Firebase Integration**: Ready for email/password and Google authentication (in progress).
+- 📅 **Date Filters**: Filter transactions by date or category.
+- 📈 **Charts**: Dual line chart for monthly income vs expenses and category breakdowns.
+- 🌙 **Dark/Light Mode**: Toggleable theme support.
+- 🗂️ **Offline Local Storage**: Uses SQLite for fast and persistent data handling.
 
-In the output, you'll find options to open the app in a
+---
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## 📦 Tech Stack
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+- ⚛️ React Native + Expo
+- 🔥 Firebase v12 (Auth, Firestore, Storage)
+- 🧠 SQLite via `expo-sqlite`
+- 💨 NativeWind (Tailwind for React Native)
+- ⏱ Luxon for date/time handling
+- 📈 `react-native-gifted-charts` and `react-native-chart-kit`
+- 🎨 Custom UI components and modals
 
-## Get a fresh project
+---
 
-When you're ready, run:
+## 🛠 Setup
+
+### 1. Clone the repo
+```bash
+git clone https://github.com/itissulav/Kharcha.git
+cd Kharcha
+````
+
+### 2. Install dependencies
 
 ```bash
-npm run reset-project
+npm install
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+### 3. Start the app
 
-## Learn more
+```bash
+npm run start
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+You can run it on:
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+* Web: `npm run web`
+* Android: `npm run android`
+* iOS (Mac only): `npm run ios`
 
-## Join the community
+---
 
-Join our community of developers creating universal apps.
+## 🔐 Firebase Setup
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+1. Go to [Firebase Console](https://console.firebase.google.com/) and create a project.
+2. Add a Web App and copy the config keys.
+3. Paste the keys inside `firebaseConfig.ts`:
+
+```ts
+const firebaseConfig = {
+  apiKey: "...",
+  authDomain: "...",
+  projectId: "...",
+  ...
+};
+```
+
+4. Enable Email/Password and Google sign-in in **Authentication > Sign-in Methods**.
+
+---
+
+## 📁 Project Structure
+
+```
+├── app/
+│   ├── (tabs)/         # Tab routes (Dashboard, Transactions, etc.)
+│   ├── settings.tsx    # Settings screen
+│   ├── profile.tsx     # Profile screen
+│   ├── globals.css     # Tailwind styles
+│   └── ...
+├── components/         # All reusable modals & UI components
+├── constants/          # Image & icon constants
+├── db/                 # SQLite logic and helpers
+├── utilities/          # Business logic functions
+├── firebaseConfig.ts   # Firebase initialization
+├── tailwind.config.js  # NativeWind config
+├── nativewind-env.d.ts
+├── tsconfig.json
+└── ...
+```
+
+---
+
+## 📸 Screenshots
+
+| Dashboard                                                | Transactions                                                 | Profile                                              |
+| -------------------------------------------------------- | ------------------------------------------------------------ | ---------------------------------------------------- |
+| ![Dashboard](./assets/images/screenshots/Dashboard.jpeg) | ![Transaction](./assets/images/screenshots/Transaction.jpeg) | ![Profile](./assets/images/screenshots/Profile.jpeg) |
+
+---
+
+## ✍️ Author
+
+**Sulav Paudel**
+GitHub: [@itissulav](https://github.com/itissulav)
+
+---
+
+## 📄 License
+
+This project is licensed under the [MIT License](LICENSE).
+
+---
+
+## 💡 Future Plans
+
+* ✅ User authentication
+* ☁️ Firebase Cloud Sync
+* 📦 Export/Import data
+* 🔔 Expense alerts
+* 🌐 Multi-language support

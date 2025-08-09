@@ -1,7 +1,6 @@
-// components/CategoryCard.tsx
 import { TopSpendingCategory } from '@/db/types';
 import React from 'react';
-import { Text, View } from 'react-native';
+import { Text, TouchableOpacity, View } from 'react-native';
 
 import {
   Feather,
@@ -19,30 +18,66 @@ const ICON_SETS = {
   MaterialIcons,
 };
 
+type Props = {
+  category : TopSpendingCategory;
+  onAdd?: (category: TopSpendingCategory) => void
+
+}
+
 export default function CategoryCard({
   category,
-}: {
-  category: TopSpendingCategory;
-}) {
-  const { category_icon, category_iconSet, category_name, total } = category;
+  onAdd
+}: Props) {
 
-  // Pick the icon component dynamically based on iconSet string
-  const IconComponent = ICON_SETS[category_iconSet as keyof typeof ICON_SETS];
+  // Determine iconSet key safely (handle casing differences)
+  const iconSetKey = (category.category_iconSet as keyof typeof ICON_SETS);
+
+  // Determine icon name safely
+  const category_icon = category.category_icon;
+
+  // Optional fields
+  const category_name = category.category_name;
+  const total = (category as TopSpendingCategory).total ?? null; // total only exists on TopSpendingCategory
+
+  const IconComponent = ICON_SETS[iconSetKey];
 
   if (!IconComponent) {
     return (
-      <View className="bg-red-500 p-4">
-        <Text className="text-white">Invalid Icon Set: {category_iconSet}</Text>
+      <View className="bg-red-500 p-4 rounded-lg">
+        <Text className="text-white">Invalid Icon Set: {iconSetKey}</Text>
       </View>
     );
   }
 
   return (
-    <View className="bg-secondary rounded-2xl shadow-md p-4 w-[48%] mb-4 items-center">
-      <IconComponent name={category_icon as any} size={32} color="#38B2AC" className="mb-2" />
+    <View
+      className={`border-b-4 rounded-2xl bg-secondary p-3 my-2 shadow-md items-center w-40`}
+    >
+      <IconComponent
+        name={category_icon as any}
+        size={28}
+        color="#14B8A6" // teal-500
+        className="mb-2"
+      />
 
-      <Text className="text-light-300 text-sm">{category_name}</Text>
-      <Text className="text-light-300 text-xl">{total}</Text>
+      <Text className="text-light-300 text-xs mb-1 font-medium capitalize text-center">
+        {category_name}
+      </Text>
+      
+      {total && (
+        <Text className="text-white text-xl font-bold mb-1">
+          Rs {total.toLocaleString()}
+        </Text>
+      )}
+
+
+      <TouchableOpacity
+        onPress={() => onAdd && onAdd(category)}
+        activeOpacity={0.7}
+        className="mt-2 rounded-lg border-b-2 w-full h-10 items-center justify-center bg-slate-700"
+      >
+        <Ionicons name="add" size={22} color="#94A3B8" />
+      </TouchableOpacity>
     </View>
   );
 }

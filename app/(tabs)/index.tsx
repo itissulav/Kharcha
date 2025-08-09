@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Dimensions,
   Image,
@@ -12,7 +13,6 @@ import {
   TouchableWithoutFeedback,
   View,
 } from "react-native";
-import { LineChart } from "react-native-chart-kit";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import AddAccountModal from "@/components/AddAccountModal";
@@ -20,56 +20,69 @@ import AddCard from "@/components/AddCard";
 import CardOptionsModal from "@/components/CardOptionsModal";
 import EditAccountModal from "@/components/EditAccountModal";
 import StorageCard from "@/components/StorageCard";
-import TotalCard from "@/components/TotalCard";
-import TransactionCard from "@/components/TransactionCard";
 
 import { initDatabase, resetDatabase } from "@/db";
 import { getAllAccounts } from "@/db/accounts";
 import {
   getAllCategories,
-  getMonthlyExpenses,
-  getRecentTransactions,
-  MonthlyExpense,
+  getTotalEarnedPerMonth,
+  getTotalSpentPerMonth
 } from "@/db/transactions";
-import { Account, Category, TransactionWithCategory } from "@/db/types";
+import { Account, Category, TopSpendingCategory } from "@/db/types";
 
 import AddCategoryModal from "@/components/AddCategoryModal";
 import AddTransactionModal from "@/components/AddTransactionModal";
+import HomeCards from "@/components/HomeCards";
+import IncomeTab from "@/components/IncomeTab";
+import MonthlySpendingCard from "@/components/MonthlyBudgetCards";
+import TopCategoriesModal from "@/components/TopCategoriesModal";
 import { icons } from "@/constants/icons";
+import { useAuth } from "@/context/AuthContext";
 import { handleDelete, handleLongPress } from "@/utilities/accountActions";
 import { handleRecurringTransactions } from "@/utilities/handleRecurringTransactions";
 import { router } from "expo-router";
 
+const screenWidth = Dimensions.get("window").width;
+
+
+
 export default function Index() {
+  const { user, loading: isLoading } = useAuth();
   const [accounts, setAccounts] = useState<Account[]>([]);
-  const [recentTransactions, setRecentTransactions] = useState<TransactionWithCategory[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [editAccountModalVisible, setEditAccountModalVisible] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
   const [optionsVisible, setOptionsVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [expenseByMonth, setExpenseByMonth] = useState<MonthlyExpense[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [addCategoryModalVisible, setAddCategoryModalVisible] = useState(false);
 
   const [menuVisible, setMenuVisible] = useState(false);
   const [addTransactionModalVisible, setAddTransactionModalVisible] = useState(false);
+  const [totalSpent, setTotalSpent] = useState<number>();
+  const [totalEarned, setTotalEarned] = useState<number>();
 
-  const screenWidth = Dimensions.get("window").width;
   const totalBalance = accounts.reduce((sum, acc) => sum + acc.balance, 0);
+  const [incomeTabPressed, SetIncomeTabPressed] = useState(false);
+  const [expenseTabPressed, setExpenseTabPressed] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState<TopSpendingCategory & { percentage?: number }>();
+
+
+
 
   const fetchData = async () => {
     await initDatabase();
 
     const data = await getAllAccounts();
-    const recent = await getRecentTransactions();
-    const expenses = await getMonthlyExpenses();
     const categories = await getAllCategories();
+    const totalSpentPerMonth = await getTotalSpentPerMonth();
+    const totalEarnedPerMonth = await getTotalEarnedPerMonth();
+
 
     setAccounts(data as Account[]);
-    setRecentTransactions(recent as TransactionWithCategory[]);
-    setExpenseByMonth(expenses);
     setCategories(categories);
+    setTotalSpent(totalSpentPerMonth);
+    setTotalEarned(totalEarnedPerMonth);
   };
 
   const handleRefresh = async () => {
@@ -85,26 +98,16 @@ export default function Index() {
     await fetchData();
   };
 
-  const formatMonth = (month: string): string | null => {
-    if (!month) return null;
-
-    const [year, monthNum] = month.split("-");
-    const date = new Date(Number(year), Number(monthNum) - 1);
-    return date.toLocaleString("default", { month: "short", year: "2-digit" });
-  };
-
-  const labels = expenseByMonth
-    .map((item) => formatMonth(item.month))
-    .filter((month): month is string => month !== null);
-
-  const values = expenseByMonth
-    .map((item) => Number(item.total_spent))
-    .filter((val) => !isNaN(val) && isFinite(val));
-
   useEffect(() => {
-    handleRecurringTransactions(accounts);
     fetchData();
+    handleRecurringTransactions(accounts);
   }, []);
+
+  if (isLoading){
+    return (
+      <ActivityIndicator></ActivityIndicator>
+    )
+  }
 
   return (
     <SafeAreaView className="flex-1 bg-primary pb-8">
@@ -127,6 +130,7 @@ export default function Index() {
           onSuccess={fetchData}
           accounts={accounts}
           categories={categories}
+          initialCategory={selectedCategory}
         />
 
         <AddCategoryModal
@@ -162,25 +166,28 @@ export default function Index() {
 
         {/* Profile Image and Greeting */}
         <View className="bg-primary rounded-2xl flex-row items-center justify-between px-4 py-2">
+          <Text className="text-light-100 text-2xl font-bold mt-4 mb-2">Hi, {user?.displayName || "there"}</Text>
           <Pressable onPress={() => router.push("/profile")}>
             <Image
-              source={{ uri: "https://i.pravatar.cc/300" }}
-              className="w-16 h-16 rounded-full border-4 border-accent"
+              source={icons.person}
+              className="w-12 h-12"
+              style={{ tintColor: "#03A6A1" }} // subtle muted gray for inactive
             />
           </Pressable>
-          <Text className="text-light-100 text-2xl font-bold mt-4 mb-2">Hi, Sulav</Text>
         </View>
 
+        <HomeCards
+          totalEarned={totalEarned || 0}
+          totalSpent={totalSpent || 0}
+          totalBalance={totalBalance}
+        />
+
         {/* Header */}
-        <Text className="text-light-100 text-2xl font-bold mt-4 mb-2">Your Balance</Text>
+        <Text className="text-light-100 text-2xl font-bold  mb-2">Your Balance</Text>
         <Text className="text-light-300 mb-6">
           Track and manage all your accounts in one place.
         </Text>
 
-        {/* Total Balance */}
-        <View className="items-center mb-6">
-          <TotalCard amount={totalBalance} />
-        </View>
 
         {/* Storage Cards */}
         <View className="mb-8">
@@ -198,61 +205,6 @@ export default function Index() {
             <AddCard onPress={() => setModalVisible(true)} />
           </View>
         </View>
-
-        {/* Recent Transactions */}
-        <View className="mb-8">
-          <Text className="text-light-200 text-lg font-semibold mb-3">Recent Transactions</Text>
-          {recentTransactions.length > 0 ? (
-            <View className="bg-secondary rounded-xl p-4 space-y-4 shadow-md shadow-black/20">
-              {recentTransactions.map((recentTransaction) => (
-                <TransactionCard
-                  key={recentTransaction.id}
-                  recentTransaction={recentTransaction}
-                />
-              ))}
-            </View>
-          ) : (
-            <Text className="text-muted-100 italic">No transactions found.</Text>
-          )}
-        </View>
-
-        {/* Monthly Expenses Chart */}
-        <View className="mb-8">
-          <Text className="text-light-200 text-lg font-semibold mb-3">Monthly Expenses</Text>
-          {labels.length > 0 && values.length > 0 ? (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <LineChart
-                data={{
-                  labels,
-                  datasets: [{ data: values, strokeWidth: 2 }],
-                }}
-                width={Math.max(labels.length * 80, screenWidth)}
-                height={220}
-                chartConfig={{
-                  backgroundColor: "#0f0d23",
-                  backgroundGradientFrom: "#0f0d23",
-                  backgroundGradientTo: "#0f0d23",
-                  decimalPlaces: 0,
-                  color: (opacity = 1) => `rgba(171, 139, 255, ${opacity})`,
-                  labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-                  propsForDots: {
-                    r: "5",
-                    strokeWidth: "2",
-                    stroke: "#AB8BFF",
-                  },
-                }}
-                bezier
-                style={{
-                  borderRadius: 16,
-                  marginVertical: 8,
-                }}
-              />
-            </ScrollView>
-          ) : (
-            <Text className="text-muted-100 italic mt-2">Not enough data to display chart.</Text>
-          )}
-        </View>
-
         {/* Reset Database Button */}
         <TouchableOpacity
           onPress={handleReset}
@@ -260,7 +212,55 @@ export default function Index() {
         >
           <Text className="text-white font-semibold">Reset Database</Text>
         </TouchableOpacity>
+
+        <View className="bg-primary border rounded-2xl py-8 px-3 mt-5 ">
+          <View className="flex-row justify-around mb-8">
+            <TouchableOpacity className={`w-[40%] ${expenseTabPressed?  "bg-accent": "" } px-5 py-3 rounded-xl self-center  border border-gray-800`}
+              onPress={() => {
+                setExpenseTabPressed(true);
+                SetIncomeTabPressed(false);
+              }}
+            >
+                <Text className="text-white text-center">Expenses</Text>
+            </TouchableOpacity>
+            <TouchableOpacity className={`w-[40%] ${incomeTabPressed?  "bg-accent": "" } px-5 py-3 rounded-xl self-center border border-gray-800`}
+              onPress={() =>{
+                SetIncomeTabPressed(true);
+                setExpenseTabPressed(false);
+              }}
+            >
+                <Text className="text-white text-center">Income</Text>
+            </TouchableOpacity>
+          </View>
+            {expenseTabPressed?(
+              <View className="items-center justify-center gap-4">
+                <TopCategoriesModal
+                  onAdd={(category) => {
+                    setSelectedCategory(category as TopSpendingCategory & { percentage?: number })
+                    setAddTransactionModalVisible(true);
+                  }}
+                />
+                <MonthlySpendingCard
+                  totalEarned={totalEarned!}
+                  totalSpent={totalSpent!}
+                />
+              </View>
+            ): (
+              <View>
+                <IncomeTab
+                  onAdd={(category) => {
+                    setSelectedCategory(category);
+                    setAddTransactionModalVisible(true);
+                  }}
+                />
+              </View>
+            )}
+        </View>
+
+
+
       </ScrollView>
+
 
       {/* Floating + Button */}
       <View className="absolute bottom-36 right-10 z-50">

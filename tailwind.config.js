@@ -9,7 +9,7 @@ module.exports = {
       colors: {
         // Core theme roles
         primary: '#030014', // background primary
-        secondary: '#00001C ', // background surface
+        secondary: '#000021', // background surface
         accent: '#AB8BFF', // accent purple
 
         // Text

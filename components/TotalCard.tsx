@@ -1,18 +1,19 @@
-import React from 'react';
-import { Text, View } from 'react-native';
+import React from "react";
+import { Text, View } from "react-native";
 
-interface Props{
-    amount: string|number;
+
+type Prop = {
+  totalBalance: number;
 }
 
-const TotalCard = ({amount}: Props) => {
+const TotalBalanceCard = ({ totalBalance }: Prop) => {
+
   return (
-
-    <View className='w-full bg-secondary rounded-2xl shadow-md p-4 items-center'>
-      <Text className='text-light-300 text-base'>Total Amount</Text>
-      <Text className='text-teal-500 text-3xl font-bold mt-1'>Rs. {amount}</Text>
+    <View className="bg-secondary rounded-2xl shadow-md shadow-black/20 p-6 items-center w-full">
+      <Text className="text-light-300 text-base mb-1">Total Balance</Text>
+      <Text className="text-teal-500 text-3xl font-bold">Rs. {totalBalance}</Text>
     </View>
-  )
-}
+  );
+};
 
-export default TotalCard
+export default TotalBalanceCard;

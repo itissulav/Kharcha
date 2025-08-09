@@ -1,3 +1,5 @@
+import ConfirmLogoutModal from '@/components/ConfirmLogoutModal';
+import { logOut } from '@/utilities/firebase/logOutUser';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useCallback, useState } from 'react';
@@ -5,11 +7,14 @@ import { Pressable, ScrollView, Switch, Text, View } from 'react-native';
 import DropDownPicker from 'react-native-dropdown-picker';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import LoadingScreen from './LoadingScreen';
 
 
 export default function SettingsPage() {
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [confirmModalVisible, setConfirmModalVisible] = useState(false);
 
   const [open, setOpen] = useState(false);
   const [currency, setCurrency] = useState('USD');
@@ -24,6 +29,20 @@ export default function SettingsPage() {
   const onDarkModeToggle = useCallback(() => setIsDarkMode((v) => !v), []);
   const onNotificationsToggle = useCallback(() => setNotificationsEnabled((v) => !v), []);
 
+  const handleLogOut = async() => {
+    setConfirmModalVisible(false);
+    setIsLoading(true);
+
+    try {
+      logOut();
+      router.replace("/login")
+    } catch (error) {
+      
+    }
+  }
+
+  if (isLoading) return (<LoadingScreen message='Logging Out...'></LoadingScreen>)
+
   return (
       <GestureHandlerRootView style={{ flex: 1 }}>
           <SafeAreaView className='bg-[#030014] flex-1'>
@@ -37,6 +56,13 @@ export default function SettingsPage() {
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
+
+            <ConfirmLogoutModal
+              visible = {confirmModalVisible}
+              onCancel={() => {setConfirmModalVisible(false)}}
+              onConfirm={() => {handleLogOut();}}
+              message='Are you sure you want to Log Out?'
+            />
             <Text className="text-light-100 text-3xl font-semibold mb-8" style={{ color: '#FFFFFF', fontSize: 28, fontWeight: '600' }}>
               Settings
             </Text>
@@ -129,7 +155,7 @@ export default function SettingsPage() {
                 paddingVertical: 14,
                 marginBottom: 24,
               }}
-              onPress={() => alert('Logout action')}
+              onPress={() => {setConfirmModalVisible(true)}}
             >
               <Text
                 style={{

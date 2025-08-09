@@ -7,10 +7,6 @@ export const getAllAccounts = async (): Promise<Account[]> => {
 
   const accounts: Account[] = await db.getAllAsync('SELECT * FROM accounts');
 
-  for (const account of accounts) {
-    console.log('balance:', account.balance);
-  }
-
   return accounts;
 };
 

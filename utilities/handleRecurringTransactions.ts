@@ -1,4 +1,4 @@
-import { getDatabase } from "@/db";
+import { getDatabase, initDatabase } from "@/db";
 import { getRecurringTransactions } from "@/db/transactions";
 import { Account, RecurringTransaction } from "@/db/types";
 import { handleAddTransaction } from "./handleAddTransaction";
@@ -27,6 +27,8 @@ export function getNextOccurrenceDate(
 }
 
 export const handleRecurringTransactions = async (account: Account[]) => {
+
+  await initDatabase();
 
   const recurringTxns: RecurringTransaction[] = await getRecurringTransactions();
 

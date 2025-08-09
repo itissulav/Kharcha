@@ -1,6 +1,10 @@
-// ...imports (unchanged)
-import { Account, Category } from "@/db/types";
+import { Account, Category, TopSpendingCategory } from "@/db/types";
 import { handleAddTransaction } from "@/utilities/handleAddTransaction";
+import {
+  validateAccount,
+  validateAmount,
+  validateCategory,
+} from "@/utilities/validationUtil";
 import {
   Feather,
   FontAwesome,
@@ -46,6 +50,7 @@ type Props = {
   onSuccess: () => void;
   accounts: Account[];
   categories: Category[];
+  initialCategory?: (TopSpendingCategory & { percentage?: number }) | null;
 };
 
 export default function AddTransactionModal({
@@ -54,21 +59,32 @@ export default function AddTransactionModal({
   onSuccess,
   accounts,
   categories,
+  initialCategory = null,
 }: Props) {
-  const [selectedAccountId, setSelectedAccountId] = useState<number | null>(null);
-  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+  const [selectedAccountId, setSelectedAccountId] = useState<number | null>(
+    null
+  );
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(
+    null
+  );
   const [amount, setAmount] = useState("");
-  const [type, setType] = useState<"credit" | "debit">("debit");
+  const [type, setType] = useState<"credit" | "debit">(
+    initialCategory?.category_name?.toLowerCase() === "salary"
+      ? "credit"
+      : "debit"
+  );
   const [date, setDate] = useState(new Date());
 
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [categoryDropdownVisible, setCategoryDropdownVisible] = useState(false);
-  const [recurrenceDropdownVisible, setRecurrenceDropdownVisible] = useState(false);
+  const [recurrenceDropdownVisible, setRecurrenceDropdownVisible] =
+    useState(false);
 
   const [isRecurring, setIsRecurring] = useState(false);
-  const [recurrencePattern, setRecurrencePattern] = useState<"daily" | "weekly" | "monthly">("monthly");
+  const [recurrencePattern, setRecurrencePattern] = useState<
+    "daily" | "weekly" | "monthly"
+  >("monthly");
   const [recurrenceInterval, setRecurrenceInterval] = useState("1");
-  const [errorMessage, setErrorMessage] = useState(0);
 
   const [validationErrors, setValidationErrors] = useState({
     account: false,
@@ -77,29 +93,61 @@ export default function AddTransactionModal({
   });
 
   useEffect(() => {
-    if (!selectedAccountId && accounts.length > 0) {
-      setSelectedAccountId(accounts[0].id);
+    if (visible) {
+      if (initialCategory) {
+        setSelectedCategory({
+          id: initialCategory.category_id,
+          name: initialCategory.category_name,
+          icon: initialCategory.category_icon,
+          iconSet: initialCategory.category_iconSet,
+          category_limit: initialCategory.category_limit,
+          spending_type: initialCategory.spending_type,
+        });
+
+        if (initialCategory.category_name?.toLowerCase() === "salary") {
+          setType("credit");
+        }
+      } else {
+        // Optional: reset category if no initialCategory when modal opens
+        setSelectedCategory(null);
+      }
+      // Optional: reset selectedAccountId on modal open (could set to first account)
+      setSelectedAccountId(accounts[0]?.id ?? null);
+      setAmount("");
+      setIsRecurring(false);
+      setRecurrenceInterval("1");
+      setValidationErrors({ account: false, amount: false, category: false });
     }
-    if (!selectedCategory && categories.length > 0) {
-      setSelectedCategory(categories[0]);
-    }
-  }, [accounts, categories]);
+  }, [visible, initialCategory, accounts]);
 
   const handleAdd = async () => {
-    const parsedAmount = parseFloat(amount);
-    const accountError = !selectedAccountId;
-    const amountError = isNaN(parsedAmount);
-    const categoryError = !selectedCategory;
+    const amountValidation = validateAmount(amount);
+    const accountValidation = validateAccount(selectedAccountId);
+    const categoryValidation = validateCategory(selectedCategory);
 
-    if (accountError || amountError || categoryError) {
-      setValidationErrors({
-        account: accountError,
-        amount: amountError,
-        category: categoryError,
-      });
-      setErrorMessage(1);
+    const newValidationErrors = {
+      amount: !amountValidation.valid,
+      account: !accountValidation.valid,
+      category: !categoryValidation.valid,
+    };
+    setValidationErrors(newValidationErrors);
+
+    if (
+      !amountValidation.valid ||
+      !accountValidation.valid ||
+      !categoryValidation.valid
+    ) {
+      // Show first error message only
+      Alert.alert(
+        "Validation Error",
+        amountValidation.message ||
+          accountValidation.message ||
+          categoryValidation.message
+      );
       return;
     }
+
+    const parsedAmount = parseFloat(amount);
 
     const success = await handleAddTransaction({
       date,
@@ -118,6 +166,7 @@ export default function AddTransactionModal({
       return;
     }
 
+    // Reset form on success
     setAmount("");
     setIsRecurring(false);
     setRecurrenceInterval("1");
@@ -130,7 +179,10 @@ export default function AddTransactionModal({
     onClose();
   };
 
-  const isFormValid = !!amount && !!selectedCategory?.id && !!selectedAccountId;
+  const isFormValid =
+    validateAmount(amount).valid &&
+    validateAccount(selectedAccountId).valid &&
+    validateCategory(selectedCategory).valid;
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
@@ -143,7 +195,9 @@ export default function AddTransactionModal({
             >
               <SafeAreaView className="bg-secondary rounded-xl p-6">
                 <ScrollView showsVerticalScrollIndicator={false}>
-                  <Text className="text-light-100 text-xl font-bold mb-6">Add Transaction</Text>
+                  <Text className="text-light-100 text-xl font-bold mb-6">
+                    Add Transaction
+                  </Text>
 
                   {/* Account Picker */}
                   <View className="bg-dark-100 rounded-lg mb-4 h-24 justify-center overflow-hidden">
@@ -151,28 +205,44 @@ export default function AddTransactionModal({
                       selectedValue={selectedAccountId}
                       onValueChange={(val) => {
                         setSelectedAccountId(val);
-                        setValidationErrors((prev) => ({ ...prev, account: false }));
+                        setValidationErrors((prev) => ({
+                          ...prev,
+                          account: false,
+                        }));
                       }}
                       style={{ color: "white" }}
                       dropdownIconColor="white"
                     >
                       {accounts.map((account) => (
-                        <Picker.Item key={account.id} label={account.name} value={account.id} />
+                        <Picker.Item
+                          key={account.id}
+                          label={account.name}
+                          value={account.id}
+                        />
                       ))}
                     </Picker>
                   </View>
+                  {validationErrors.account && (
+                    <Text className="text-red-400 text-xs mb-2">
+                      Please select an account
+                    </Text>
+                  )}
 
                   {/* Type Toggle */}
                   <View className="mb-4 flex-row justify-between">
                     <TouchableOpacity
                       onPress={() => setType("debit")}
-                      className={`flex-1 p-3 rounded-l-lg items-center ${type === "debit" ? "bg-red-500" : "bg-dark-100"}`}
+                      className={`flex-1 p-3 rounded-l-lg items-center ${
+                        type === "debit" ? "bg-red-500" : "bg-dark-100"
+                      }`}
                     >
                       <Text className="text-white font-semibold">Debit</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       onPress={() => setType("credit")}
-                      className={`flex-1 p-3 rounded-r-lg items-center ${type === "credit" ? "bg-green-600" : "bg-dark-100"}`}
+                      className={`flex-1 p-3 rounded-r-lg items-center ${
+                        type === "credit" ? "bg-green-600" : "bg-dark-100"
+                      }`}
                     >
                       <Text className="text-white font-semibold">Credit</Text>
                     </TouchableOpacity>
@@ -182,27 +252,41 @@ export default function AddTransactionModal({
                   <View className="mb-4">
                     <Text className="text-light-300 text-sm mb-1">Amount</Text>
                     {validationErrors.amount && (
-                      <Text className="text-red-400 text-xs mb-1">Valid amount is required</Text>
+                      <Text className="text-red-400 text-xs mb-1">
+                        Valid amount is required
+                      </Text>
                     )}
                     <TextInput
                       value={amount}
                       onChangeText={(val) => {
                         setAmount(val);
-                        setValidationErrors((prev) => ({ ...prev, amount: false }));
+                        setValidationErrors((prev) => ({
+                          ...prev,
+                          amount: false,
+                        }));
                       }}
                       placeholder="e.g. 1000"
                       keyboardType="numeric"
                       className="bg-dark-100 text-white rounded-lg p-3 text-base"
                       placeholderTextColor="#9CA4AB"
-                      style={{ borderColor: "red", borderWidth: errorMessage }}
+                      style={{
+                        borderColor: validationErrors.amount
+                          ? "red"
+                          : "transparent",
+                        borderWidth: validationErrors.amount ? 1 : 0,
+                      }}
                     />
                   </View>
 
                   {/* Category Selector */}
                   <View className="mb-4">
-                    <Text className="text-light-300 text-sm mb-1">Category</Text>
+                    <Text className="text-light-300 text-sm mb-1">
+                      Category
+                    </Text>
                     {validationErrors.category && (
-                      <Text className="text-red-400 text-xs mb-1">Please select a category</Text>
+                      <Text className="text-red-400 text-xs mb-1">
+                        Please select a category
+                      </Text>
                     )}
                     <TouchableOpacity
                       onPress={() => setCategoryDropdownVisible(true)}
@@ -212,16 +296,33 @@ export default function AddTransactionModal({
                         <>
                           <View className="flex-row items-center gap-2">
                             {(() => {
-                              const IconComponent = ICON_SETS[selectedCategory.iconSet as keyof typeof ICON_SETS];
+                              const IconComponent =
+                                ICON_SETS[
+                                  selectedCategory.iconSet as keyof typeof ICON_SETS
+                                ];
                               return IconComponent ? (
-                                <IconComponent name={selectedCategory.icon as any} size={24} color="#38B2AC" />
+                                <IconComponent
+                                  name={selectedCategory.icon as any}
+                                  size={24}
+                                  color="#38B2AC"
+                                />
                               ) : (
-                                <Ionicons name="pricetag-outline" size={24} color="#38B2AC" />
+                                <Ionicons
+                                  name="pricetag-outline"
+                                  size={24}
+                                  color="#38B2AC"
+                                />
                               );
                             })()}
-                            <Text className="text-white text-base">{selectedCategory.name}</Text>
+                            <Text className="text-white text-base">
+                              {selectedCategory.name}
+                            </Text>
                           </View>
-                          <Ionicons name="chevron-down-outline" size={20} color="white" />
+                          <Ionicons
+                            name="chevron-down-outline"
+                            size={20}
+                            color="white"
+                          />
                         </>
                       ) : (
                         <Text className="text-gray-400">Select category</Text>
@@ -248,19 +349,35 @@ export default function AddTransactionModal({
                                 className="flex-row items-center p-3 rounded-md mb-1"
                                 onPress={() => {
                                   setSelectedCategory(cat);
-                                  setValidationErrors((prev) => ({ ...prev, category: false }));
+                                  setValidationErrors((prev) => ({
+                                    ...prev,
+                                    category: false,
+                                  }));
                                   setCategoryDropdownVisible(false);
                                 }}
                               >
                                 {(() => {
-                                  const IconComponent = ICON_SETS[cat.iconSet as keyof typeof ICON_SETS];
+                                  const IconComponent =
+                                    ICON_SETS[
+                                      cat.iconSet as keyof typeof ICON_SETS
+                                    ];
                                   return IconComponent ? (
-                                    <IconComponent name={cat.icon as any} size={28} color="#38B2AC" />
+                                    <IconComponent
+                                      name={cat.icon as any}
+                                      size={28}
+                                      color="#38B2AC"
+                                    />
                                   ) : (
-                                    <Ionicons name="pricetag-outline" size={28} color="#38B2AC" />
+                                    <Ionicons
+                                      name="pricetag-outline"
+                                      size={28}
+                                      color="#38B2AC"
+                                    />
                                   );
                                 })()}
-                                <Text className="text-light-100 text-lg ml-3">{cat.name}</Text>
+                                <Text className="text-light-100 text-lg ml-3">
+                                  {cat.name}
+                                </Text>
                               </TouchableOpacity>
                             ))}
                           </ScrollView>
@@ -271,13 +388,18 @@ export default function AddTransactionModal({
 
                   {/* Date Picker */}
                   <View className="mb-6">
-                    <Text className="text-light-300 text-sm mb-1">Date & Time</Text>
+                    <Text className="text-light-300 text-sm mb-1">
+                      Date & Time
+                    </Text>
                     <TouchableOpacity
                       className="bg-dark-100 rounded-lg p-3"
                       onPress={() => setShowDatePicker(true)}
                     >
                       <Text className="text-white">
-                        {date.toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}
+                        {date.toLocaleString("en-GB", {
+                          dateStyle: "medium",
+                          timeStyle: "short",
+                        })}
                       </Text>
                     </TouchableOpacity>
                     {showDatePicker && (
@@ -295,13 +417,20 @@ export default function AddTransactionModal({
 
                   {/* Recurring Switch */}
                   <View className="mb-6">
-                    <Text className="text-light-300 text-sm mb-1">Recurring Payment</Text>
-                    <Switch value={isRecurring} onValueChange={setIsRecurring} />
+                    <Text className="text-light-300 text-sm mb-1">
+                      Recurring Payment
+                    </Text>
+                    <Switch
+                      value={isRecurring}
+                      onValueChange={setIsRecurring}
+                    />
                   </View>
 
                   {isRecurring && (
                     <View className="mb-6">
-                      <Text className="text-light-300 text-sm mb-1">Repeat Every</Text>
+                      <Text className="text-light-300 text-sm mb-1">
+                        Repeat Every
+                      </Text>
                       <View className="flex-row items-center gap-2">
                         <TextInput
                           value={recurrenceInterval}
@@ -314,7 +443,9 @@ export default function AddTransactionModal({
                           className="bg-dark-100 rounded-lg p-3"
                         >
                           <Text className="text-white">
-                            {recurrenceOptions.find(opt => opt.value === recurrencePattern)?.label || "Select frequency"}
+                            {recurrenceOptions.find(
+                              (opt) => opt.value === recurrencePattern
+                            )?.label || "Select frequency"}
                           </Text>
                         </TouchableOpacity>
                       </View>
@@ -322,7 +453,9 @@ export default function AddTransactionModal({
                         transparent
                         visible={recurrenceDropdownVisible}
                         animationType="fade"
-                        onRequestClose={() => setRecurrenceDropdownVisible(false)}
+                        onRequestClose={() =>
+                          setRecurrenceDropdownVisible(false)
+                        }
                       >
                         <TouchableOpacity
                           className="flex-1 justify-center items-center bg-black/50"
@@ -339,7 +472,9 @@ export default function AddTransactionModal({
                                   setRecurrenceDropdownVisible(false);
                                 }}
                               >
-                                <Text className="text-white text-base">{option.label}</Text>
+                                <Text className="text-white text-base">
+                                  {option.label}
+                                </Text>
                               </TouchableOpacity>
                             ))}
                           </View>
@@ -354,13 +489,19 @@ export default function AddTransactionModal({
                       onPress={onClose}
                       className="flex-1 bg-red-500 px-4 py-3 rounded-lg items-center"
                     >
-                      <Text className="text-white font-semibold text-base">Cancel</Text>
+                      <Text className="text-white font-semibold text-base">
+                        Cancel
+                      </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       onPress={handleAdd}
-                      className={`flex-1 ${isFormValid ? "bg-teal-500" : "bg-dark-200"} px-4 py-3 rounded-lg items-center`}
+                      className={`flex-1 ${
+                        isFormValid ? "bg-teal-500" : "bg-dark-200"
+                      } px-4 py-3 rounded-lg items-center`}
                     >
-                      <Text className="text-white font-semibold text-base">Add</Text>
+                      <Text className="text-white font-semibold text-base">
+                        Add
+                      </Text>
                     </TouchableOpacity>
                   </View>
                 </ScrollView>

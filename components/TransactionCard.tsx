@@ -1,18 +1,19 @@
-import { TransactionWithCategory } from "@/db/types";
+import { CreditTransaction, TransactionWithCategory } from "@/db/types";
 import { Pressable, Text, View } from "react-native";
 
 type Props = {
-  recentTransaction: TransactionWithCategory;
+  recentTransaction: TransactionWithCategory | CreditTransaction;
   onLongPress?: () => void;
 }
 
 
 export default function TransactionCard({recentTransaction, onLongPress}: Props) {
 
-  const type = recentTransaction.type
-  const purpose = recentTransaction.category_name
-  const amount = recentTransaction.amount
-  const timestamp = recentTransaction.created_at
+  const type = recentTransaction.type;
+  const purpose = recentTransaction.category_name;
+  const amount = recentTransaction.amount;
+  const timestamp = recentTransaction.created_at;
+  const spending_type = recentTransaction.spending_type;
 
   const isCredit = type === "credit";
 
@@ -21,7 +22,7 @@ export default function TransactionCard({recentTransaction, onLongPress}: Props)
     <Pressable
       onLongPress={onLongPress}
     >
-      <View className="bg-secondary w-full p-4 rounded-xl mb-3 shadow-lg shadow-black/10 flex-row justify-between items-center">
+      <View className={`bg-secondary w-full p-4 rounded-xl mb-3 shadow-lg shadow-black/10 flex-row justify-between items-center border-b-4 ${spending_type == 'essential'? 'border-blue-800' : "border-pink-800"}`}>
         <View className="flex-1">
           <Text className="text-light-100 text-base font-semibold">
             {purpose}
@@ -37,6 +38,7 @@ export default function TransactionCard({recentTransaction, onLongPress}: Props)
         <Text className="text-gray-400 text-sm ml-4 text-right w-24">
           {timestamp}
         </Text>
+
       </View>
     </Pressable>
   );

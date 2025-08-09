@@ -1,5 +1,5 @@
 import { updateAccountBalance } from "@/db/accounts";
-import { insertTransaction } from "@/db/transactions";
+import { checkCategoryLimit, insertTransaction } from "@/db/transactions";
 import { Account } from "@/db/types";
 import * as Localization from "expo-localization";
 import { DateTime } from "luxon";
@@ -77,6 +77,12 @@ export const handleAddTransaction = async ({
     next_occurrence = getNextOccurrence(date, recurrence_pattern, recurrence_interval);
   }
 
+  const {isLimitExceeded, currentSpent, categoryLimit} = await checkCategoryLimit(selectedCategoryId, amount, type);
+
+  if (isLimitExceeded){
+    alert("Your Limit for this category for the month has exceeded");
+  }
+
   await insertTransaction({
     account_id: selectedAccountId,
     type,
@@ -90,7 +96,6 @@ export const handleAddTransaction = async ({
     next_occurrence,
   });
 
-  console.log("Account Balance: ", selectedAccount.balance)
 
   const updatedBalance =
     type === "credit"
@@ -104,7 +109,5 @@ export const handleAddTransaction = async ({
     console.error(error);
   }
 
-  
-  console.log("Balance Updated: ", updateAccountBalance)
-  return true;
+    return true;
 };

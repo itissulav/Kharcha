@@ -11,6 +11,8 @@ export type TopSpendingCategory = {
   category_name: string;
   category_icon: string;      // icon name string (not just IoniconName, to cover all sets)
   category_iconSet: string;
+  category_limit: number;
+  spending_type: 'lifestyle' | 'essential';
   total: number;
 };
 
@@ -63,6 +65,15 @@ export type Category = {
   name: string;
   icon: string;
   iconSet: string;
+  category_limit: number;
+  spending_type: 'lifestyle' | 'essential';
+};
+export type InsertCategory = {
+  name: string;
+  icon: string;
+  iconSet: string;
+  categoryLimit: number;
+  spending_type: "lifestyle" | "essential";
 };
 
 export type RecurringTransaction = {
@@ -90,6 +101,7 @@ export type TransactionWithCategory = {
   created_at: string; // ISO timestamp
   category_name: string;
   category_icon: string;
+  spending_type: 'essential' | 'lifestyle';
 };
 
 export type CategoryTransactionWithPercent = {
@@ -97,7 +109,27 @@ export type CategoryTransactionWithPercent = {
   category_name: string;
   category_icon: string;
   category_iconSet: string;
+  spending_type: 'lifestyle' | 'essential';
   total: number;
+  category_limit: number;
   percentage: number;  // percentage of total spending in last 30 days
+};
+
+
+export type CreditTransaction = {
+  id: number;
+  account_id: number;
+  type: 'credit';
+  category_id: number;
+  note: string | null;
+  amount: number;
+  is_recurring: 0 | 1;
+  recurrence_pattern: string | null;
+  recurrence_interval: number | null;
+  next_occurrence: string | null;
+  created_at: string;
+  category_name: string;
+  account_name: string;
+  spending_type: 'essential' | 'lifestyle';
 };
 

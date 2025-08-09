@@ -1,34 +1,55 @@
 import { icons } from "@/constants/icons";
-import { Tabs } from "expo-router";
-import React from "react";
+import { useAuth } from "@/context/AuthContext";
+import { Redirect, Tabs } from "expo-router";
+import React, { useRef } from "react";
 import { Image, ImageSourcePropType, View } from "react-native";
 
+import * as Haptics from "expo-haptics";
+import { useEffect } from "react";
+
 type Props = {
-  focused: boolean,
-  icon: ImageSourcePropType
+  focused: boolean;
+  icon: ImageSourcePropType;
 };
 
-const TabBarIcon = ({ focused, icon }: Props) => (
-  <View className="items-center justify-center align-middle relative">
-    {focused ? (
-      <View className="bg-[#03A6A1] w-12 h-12 rounded-full items-center justify-center align-middle shadow-md">
+const TabBarIcon = ({ focused, icon }: Props) => {
+  const prevFocused = useRef(focused);
+
+  useEffect(() => {
+    // Only trigger haptics when tab becomes focused
+    if (focused && !prevFocused.current) {
+      Haptics.selectionAsync(); // subtle "selection" feedback
+    }
+    prevFocused.current = focused;
+  }, [focused]);
+
+  return (
+    <View className="items-center justify-center relative">
+      {focused ? (
+        <View className="bg-[#03A6A1] w-12 h-12 rounded-full items-center justify-center shadow-md">
+          <Image
+            source={icon}
+            className="w-6 h-6"
+            style={{ tintColor: "#000000" }}
+          />
+        </View>
+      ) : (
         <Image
           source={icon}
           className="w-6 h-6"
-          style={{ tintColor: "#000000" }}
+          style={{ tintColor: "#8A8A8E" }}
         />
-      </View>
-    ) : (
-      <Image
-        source={icon}
-        className="w-6 h-6"
-        style={{ tintColor: "#8A8A8E" }} // subtle muted gray for inactive
-      />
-    )}
-  </View>
-);
+      )}
+    </View>
+  );
+};
 
 export default function Layout() {
+  const { user, loading } = useAuth();
+
+  if (loading) return null;
+  if (!user) return <Redirect href={"/login"} />;
+
   return (
     <Tabs
       screenOptions={{
@@ -39,7 +60,7 @@ export default function Layout() {
           paddingTop: 10,
           paddingBottom: 10,
           justifyContent: "center",
-          marginHorizontal: 100,
+          marginHorizontal: 70,
           marginBottom: 34,
           borderRadius: 40,
           backgroundColor: "#030014", // pure black base
@@ -66,6 +87,22 @@ export default function Layout() {
         options={{
           tabBarIcon: ({ focused }) => (
             <TabBarIcon focused={focused} icon={icons.transaction} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="statistics"
+        options={{
+          tabBarIcon: ({ focused }) => (
+            <TabBarIcon focused={focused} icon={icons.statistics} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="preference"
+        options={{
+          tabBarIcon: ({ focused }) => (
+            <TabBarIcon focused={focused} icon={icons.preference} />
           ),
         }}
       />

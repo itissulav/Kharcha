@@ -1,4 +1,5 @@
-import { insertCategory } from "@/db/transactions";
+import { updateCategory } from "@/db/transactions";
+import { CategoryTransactionWithPercent } from "@/db/types";
 import {
   Feather,
   FontAwesome,
@@ -6,7 +7,7 @@ import {
   MaterialCommunityIcons,
   MaterialIcons,
 } from "@expo/vector-icons";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   FlatList,
   KeyboardAvoidingView,
@@ -26,35 +27,48 @@ const ICON_SETS = {
   MaterialIcons,
 } as const;
 
-const COMBINED_ICONS = Object.entries(ICON_SETS).flatMap(([setName, IconComponent]) =>
-  Object.keys(IconComponent.glyphMap).map((iconName) => ({
-    setName,
-    iconName,
-    IconComponent,
-  }))
+const COMBINED_ICONS = Object.entries(ICON_SETS).flatMap(
+  ([setName, IconComponent]) =>
+    Object.keys(IconComponent.glyphMap).map((iconName) => ({
+      setName,
+      iconName,
+      IconComponent,
+    }))
 );
 
-export default function AddCategoryModal({
+export default function EditCategoryModal({
+  category,
   visible,
   onClose,
   onSave,
 }: {
+  category: CategoryTransactionWithPercent | null;
   visible: boolean;
   onClose: () => void;
   onSave: () => void;
 }) {
-  const [name, setName] = useState("");
-  const [selectedIcon, setSelectedIcon] = useState<{ iconName: string; setName: string } | null>(
-    null
+  const [name, setName] = useState(category?.category_name);
+  const [selectedIcon, setSelectedIcon] = useState<{
+    iconName: string | undefined;
+    setName: string | undefined;
+  } | null>({
+    iconName: category?.category_icon,
+    setName: category?.category_iconSet,
+  });
+  const [transactionCategory, setTransactionCategory] = useState<
+    "essential" | "lifestyle"
+  >(category?.spending_type ?? "essential");
+  const [monthlyLimit, setMonthlyLimit] = useState<string>(
+    category?.category_limit !== undefined && category.category_limit !== null
+      ? category.category_limit.toLocaleString()
+      : ""
   );
-  const [transactionCategory, setTransactionCategory] = useState<'essential' | 'lifestyle'>("essential")
-  const [monthlyLimit, setMonthlyLimit] = useState<string | undefined>(undefined);
-  const [searchText, setSearchText] = useState("");
+  const [searchText, setSearchText] = useState(category?.category_icon);
   const [nameError, setNameError] = useState("");
   const [iconError, setIconError] = useState("");
 
   const filteredIcons = useMemo(() => {
-    if (!searchText.trim()) return COMBINED_ICONS;
+    if (!searchText?.trim()) return COMBINED_ICONS;
     return COMBINED_ICONS.filter((icon) =>
       icon.iconName.toLowerCase().includes(searchText.toLowerCase())
     );
@@ -63,7 +77,7 @@ export default function AddCategoryModal({
   const handleSave = async () => {
     let hasError = false;
 
-    if (!name.trim()) {
+    if (!name?.trim()) {
       setNameError("Please enter a category name.");
       hasError = true;
     } else {
@@ -81,13 +95,20 @@ export default function AddCategoryModal({
 
     if (!monthlyLimit) setMonthlyLimit("");
 
-    const success = await insertCategory({
-      name: name.trim(),
-      icon: selectedIcon!.iconName,
-      iconSet: selectedIcon!.setName,
-      categoryLimit:parseFloat(monthlyLimit!),
-      spending_type: transactionCategory
-    });
+    let success = false;
+
+    try {
+      success = await updateCategory({
+        id: category?.category_id!,
+        name: name!.trim(),
+        icon: selectedIcon!.iconName!,
+        iconSet: selectedIcon!.setName!,
+        categoryLimit: parseFloat(monthlyLimit!),
+        spending_type: transactionCategory,
+      });
+    } catch (error) {
+      console.log(error);
+    }
 
     if (success) {
       setName("");
@@ -102,6 +123,23 @@ export default function AddCategoryModal({
     }
   };
 
+  useEffect(() => {
+    setName(category?.category_name ?? "");
+    setSelectedIcon({
+      iconName: category?.category_icon,
+      setName: category?.category_iconSet,
+    });
+    setTransactionCategory(category?.spending_type ?? "essential");
+    setMonthlyLimit(
+      category?.category_limit !== undefined && category.category_limit !== null
+        ? category.category_limit.toLocaleString()
+        : ""
+    );
+    setSearchText(category?.category_icon ?? "");
+    setNameError("");
+    setIconError("");
+  }, [category]);
+
   return (
     <Modal visible={visible} animationType="slide" transparent={true}>
       <KeyboardAvoidingView
@@ -109,19 +147,29 @@ export default function AddCategoryModal({
         className="flex-1 justify-center items-center bg-black/50 px-4"
       >
         <View className="bg-secondary p-6 rounded-xl w-full max-w-md shadow-lg">
-          <Text className="text-light-100 text-xl font-bold mb-6">Add Category</Text>
+          <Text className="text-light-100 text-xl font-bold mb-6">
+            Edit Category
+          </Text>
 
           {/* Type Toggle */}
           <View className="mb-4 flex-row justify-between">
             <TouchableOpacity
               onPress={() => setTransactionCategory("lifestyle")}
-              className={`flex-1 p-3 rounded-l-lg items-center ${transactionCategory === "lifestyle" ? "bg-red-500" : "bg-dark-100"}`}
+              className={`flex-1 p-3 rounded-l-lg items-center ${
+                transactionCategory === "lifestyle"
+                  ? "bg-red-500"
+                  : "bg-dark-100"
+              }`}
             >
               <Text className="text-white font-semibold">Lifestyle</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => setTransactionCategory("essential")}
-              className={`flex-1 p-3 rounded-r-lg items-center ${transactionCategory === "essential" ? "bg-green-600" : "bg-dark-100"}`}
+              className={`flex-1 p-3 rounded-r-lg items-center ${
+                transactionCategory === "essential"
+                  ? "bg-green-600"
+                  : "bg-dark-100"
+              }`}
             >
               <Text className="text-white font-semibold">Essential</Text>
             </TouchableOpacity>
@@ -130,12 +178,17 @@ export default function AddCategoryModal({
           {/* Name */}
           <View className="mb-4">
             <Text className="text-light-300 text-sm mb-1">Category Name</Text>
-            {nameError ? <Text className="text-red-400 text-xs mb-1">{nameError}</Text> : null}
+            {nameError ? (
+              <Text className="text-red-400 text-xs mb-1">{nameError}</Text>
+            ) : null}
             <TextInput
               value={name}
               onChangeText={(text) => {
                 setName(text);
-                if (text.trim()) {setNameError(""); setIconError("")};
+                if (text.trim()) {
+                  setNameError("");
+                  setIconError("");
+                }
               }}
               placeholder="e.g. Grocery"
               className={`bg-dark-100 text-white rounded-lg p-3 text-base ${
@@ -147,7 +200,9 @@ export default function AddCategoryModal({
 
           {/* Monthly Limit */}
           <View className="mb-4">
-            <Text className="text-light-300 text-sm mb-1">Monthly Spending Limit (optional)</Text>
+            <Text className="text-light-300 text-sm mb-1">
+              Monthly Spending Limit (optional)
+            </Text>
             <TextInput
               value={monthlyLimit}
               onChangeText={(text) => {
@@ -162,12 +217,17 @@ export default function AddCategoryModal({
           {/* Icon Search + Grid */}
           <View className="mb-4">
             <Text className="text-light-300 text-sm mb-1">Select Icon</Text>
-            {iconError ? <Text className="text-red-400 text-xs mb-1">{iconError}</Text> : null}
+            {iconError ? (
+              <Text className="text-red-400 text-xs mb-1">{iconError}</Text>
+            ) : null}
             <TextInput
               value={searchText}
               onChangeText={(text) => {
                 setSearchText(text);
-                if (selectedIcon) {setIconError(""); setNameError("")};
+                if (selectedIcon) {
+                  setIconError("");
+                  setNameError("");
+                }
               }}
               placeholder="Search for an icon..."
               className={`bg-dark-100 text-white rounded-lg p-3 mb-2 ${
@@ -192,11 +252,16 @@ export default function AddCategoryModal({
                 return (
                   <TouchableOpacity
                     onPress={() => {
-                      setSelectedIcon({ iconName: item.iconName, setName: item.setName });
+                      setSelectedIcon({
+                        iconName: item.iconName,
+                        setName: item.setName,
+                      });
                       setIconError("");
                     }}
                     className={`p-2 m-1 rounded-full border items-center justify-center ${
-                      isSelected ? "border-teal-600 bg-teal-100" : "border-gray-500"
+                      isSelected
+                        ? "border-teal-600 bg-teal-100"
+                        : "border-gray-500"
                     }`}
                     style={{ flex: 1, maxWidth: "16.66%" }}
                   >

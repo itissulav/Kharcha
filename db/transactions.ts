@@ -1,6 +1,7 @@
 // database/transactions.ts
+import { DateTime } from 'luxon';
 import { getDatabase } from './index';
-import { Category, CategoryTransactionWithPercent, InsertTransactionInput, RecurringTransaction, UpdateTransactionInput } from './types';
+import { Category, CategoryTransactionWithPercent, CreditTransaction, InsertCategory, InsertTransactionInput, RecurringTransaction, TopSpendingCategory, UpdateTransactionInput } from './types';
 
 export const getAllTransactions = async () => {
   const db = await getDatabase();
@@ -34,6 +35,67 @@ export const insertTransaction = async (tx: InsertTransactionInput) => {
   );
 };
 
+interface LimitCheckResult {
+  isLimitExceeded: boolean;
+  currentSpent: number;
+  categoryLimit: number | null;
+}
+
+export const checkCategoryLimit = async (
+  categoryId: number,
+  amountToAdd: number,
+  type: 'debit' | 'credit'
+): Promise<LimitCheckResult> => {
+  if (type !== 'debit') {
+    // No need to check limits for credits
+    return {
+      isLimitExceeded: false,
+      currentSpent: 0,
+      categoryLimit: null,
+    };
+  }
+
+  const db = await getDatabase();
+
+  // 1. Get category limit
+  const category = await db.getFirstAsync<{ category_limit: number | null }>(
+    `SELECT category_limit FROM categories WHERE id = ?`,
+    [categoryId]
+  );
+
+  const limit = category?.category_limit ?? null;
+  if (limit === null) {
+    // No limit set for this category
+    return {
+      isLimitExceeded: false,
+      currentSpent: 0,
+      categoryLimit: null,
+    };
+  }
+
+  // 2. Calculate current spent this month in this category
+  const spentResult = await db.getFirstAsync<{ spent: number }>(
+    `SELECT COALESCE(SUM(amount), 0) AS spent
+     FROM transactions
+     WHERE category_id = ?
+       AND type = 'debit'
+       AND date(created_at) >= date('now', 'start of month')`,
+    [categoryId]
+  );
+
+  const currentSpent = spentResult?.spent ?? 0;
+  const newTotal = currentSpent + amountToAdd;
+
+  // 3. Check if new total exceeds limit
+  const isLimitExceeded = newTotal > limit;
+
+  return {
+    isLimitExceeded,
+    currentSpent,
+    categoryLimit: limit,
+  };
+};
+
 
 export const deleteTransaction = async (id: number) => {
   const db = await getDatabase();
@@ -55,7 +117,7 @@ export const getRecentTransactions = async () => {
     FROM transactions
     JOIN categories ON transactions.category_id = categories.id
     ORDER BY transactions.created_at DESC
-    LIMIT 3
+    LIMIT 5;
   `);
 
   return transactions;
@@ -74,7 +136,8 @@ export const getTransactionsByAccount = async (accountId: number) => {
       transactions.type,
       transactions.created_at,
       categories.name as category_name,
-      categories.icon as category_icon
+      categories.icon as category_icon,
+      categories.spending_type as spending_type
     FROM transactions
     JOIN categories ON transactions.category_id = categories.id
     WHERE transactions.account_id = ?
@@ -84,6 +147,32 @@ export const getTransactionsByAccount = async (accountId: number) => {
   return transactions;
 };
 
+export const getCreditTransactionsThisMonth = async (): Promise<CreditTransaction[]> => {
+  const db = await getDatabase();
+  
+  const now = new Date();
+  const startOfMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+  const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1)
+    .toISOString()
+    .split("T")[0];
+
+  const result = await db.getAllAsync<CreditTransaction>(`
+    SELECT 
+      t.*, 
+      c.name as category_name, 
+      c.spending_type as spending_type,
+      a.name as account_name
+    FROM transactions t
+    JOIN categories c ON t.category_id = c.id
+    JOIN accounts a ON t.account_id = a.id
+    WHERE t.type = 'credit'
+      AND date(t.created_at) >= date(?)
+      AND date(t.created_at) < date(?)
+    ORDER BY t.created_at DESC
+  `, [startOfMonth, startOfNextMonth]);
+
+  return result;
+};
 
 
 export const getTopSpendingCategories = async () => {
@@ -102,7 +191,7 @@ export const getTopSpendingCategories = async () => {
       AND t.created_at >= datetime('now', '-30 days')
     GROUP BY c.id, c.name, c.icon
     ORDER BY total DESC
-    LIMIT 5;
+    LIMIT 2;
     `
   );
 
@@ -115,8 +204,12 @@ type CategoryTransactionStats = {
   category_name: string;
   category_icon: string;
   category_iconSet: string;
+  category_limit: number;
+  spending_type: 'lifestyle' | 'essential';
   total: number;
 };
+
+
 
 export const getCategoryWithTransaction = async (): Promise<CategoryTransactionWithPercent[]> => {
   const db = await getDatabase();
@@ -132,19 +225,22 @@ export const getCategoryWithTransaction = async (): Promise<CategoryTransactionW
   // Step 2: Get per-category spending
   const categoryResults = await db.getAllAsync<CategoryTransactionStats>(
     `SELECT 
-       c.id AS category_id,
-       c.name AS category_name,
-       c.icon AS category_icon,
-       c.iconSet AS category_iconSet,
-       COALESCE(SUM(t.amount), 0) AS total
-     FROM categories c
-     LEFT JOIN transactions t 
-       ON t.category_id = c.id 
-       AND t.type = 'debit' 
-       AND t.created_at >= datetime('now', '-30 days')
-     GROUP BY c.id, c.name, c.icon, c.iconSet
-     ORDER BY total DESC`
+      c.id AS category_id,
+      c.name AS category_name,
+      c.icon AS category_icon,
+      c.iconSet AS category_iconSet,
+      c.category_limit AS category_limit,
+      c.spending_type AS spending_type,
+      COALESCE(SUM(t.amount), 0) AS total
+    FROM categories c
+    LEFT JOIN transactions t 
+      ON t.category_id = c.id 
+      AND t.type = 'debit' 
+      AND date(t.created_at) >= date('now', 'start of month')
+    GROUP BY c.id, c.name, c.icon, c.iconSet
+    ORDER BY total DESC`
   );
+
 
   // Step 3: Add percentage to each result
   const categoryWithPercent = categoryResults.map((cat) => ({
@@ -171,21 +267,110 @@ export async function getAllCategories(): Promise<Category[]> {
   return results as Category[];
 }
 
-export const insertCategory = async (category: Category): Promise<boolean> => {
+export async function getSalary(): Promise<TopSpendingCategory[]> {
+  const db = await getDatabase();
+
+  const query = `
+    SELECT
+      id as category_id,
+      name as category_name,
+      icon as category_icon,
+      iconSet as category_iconSet,
+      COALESCE(category_limit, 0) as category_limit,
+      spending_type
+    FROM categories
+    WHERE name = 'Salary'
+    LIMIT 1;
+  `;
+
+  const results = await db.getAllAsync(query);
+
+  return results as TopSpendingCategory[];
+}
+
+
+export async function getCreditCategoriesThisMonth(): Promise<TopSpendingCategory[]> {
+  const db = await getDatabase();
+
+  // Get the first day of the current month in YYYY-MM-DD format
+  const now = new Date();
+  const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const firstDayStr = firstDayOfMonth.toISOString().slice(0, 10); // e.g. '2025-08-01'
+
+  const query = `
+    SELECT
+      c.id AS category_id,
+      c.name AS category_name,
+      c.icon AS category_icon,
+      c.iconSet AS category_iconSet,
+      COALESCE(c.category_limit, 0) AS category_limit,
+      c.spending_type,
+      SUM(t.amount) AS total
+    FROM categories c
+    JOIN transactions t ON t.category_id = c.id
+    WHERE t.type = 'credit'
+      AND DATE(t.created_at) >= ?
+    GROUP BY c.id, c.name, c.icon, c.iconSet, c.category_limit, c.spending_type
+    ORDER BY total DESC
+  `;
+
+  const results = await db.getAllAsync(query, [firstDayStr]);
+
+  return results as TopSpendingCategory[];
+}
+
+
+export const insertCategory = async (category: InsertCategory): Promise<boolean> => {
   const db = await getDatabase();
 
   try {
     await db.runAsync(
-      `INSERT INTO categories (name, icon, iconSet) VALUES (?, ?, ?);`,
+      `INSERT INTO categories (name, icon, iconSet, category_limit, spending_type) VALUES (?, ?, ?, ?, ?);`,
       [
         category.name,
         category.icon,
         category.iconSet,
+        category.categoryLimit,
+        category.spending_type
       ]
     );
     return true;
   } catch (error) {
+    alert(error)
     console.error("Failed to insert category:", error);
+    return false;
+  }
+};
+export interface UpdateCategory {
+  id: number;
+  name: string;
+  icon: string;
+  iconSet: string;
+  categoryLimit?: number | null;
+  spending_type: 'essential' | 'lifestyle';
+}
+
+export const updateCategory = async (category: UpdateCategory): Promise<boolean> => {
+  const db = await getDatabase();
+
+  try {
+    await db.runAsync(
+      `UPDATE categories 
+       SET name = ?, icon = ?, iconSet = ?, category_limit = ?, spending_type = ?
+       WHERE id = ?;`,
+      [
+        category.name,
+        category.icon,
+        category.iconSet,
+        category.categoryLimit ?? null,
+        category.spending_type,
+        category.id,
+      ]
+    );
+    return true;
+  } catch (error) {
+    alert(error);
+    console.error("Failed to update category:", error);
     return false;
   }
 };
@@ -195,8 +380,39 @@ export type MonthlyExpense = {
   total_spent: number;
 };
 
+export const getTotalSpentPerMonth = async() => {
+  const db = await getDatabase();
+
+  const startOfMonth = DateTime.now().startOf("month").toISO();
+  const endOfMonth = DateTime.now().endOf("month").toISO();
+
+  const result =  await db.getFirstAsync<{total_spent: number | null;}>(`
+    SELECT SUM (amount) as total_spent
+    FROM transactions
+    WHERE type = 'debit' AND created_at BETWEEN ? AND ?    
+  `, [startOfMonth, endOfMonth]);
+
+  return result?.total_spent?? 0;
+}
+
+export const getTotalEarnedPerMonth = async() => {
+  const db = await getDatabase();
+
+  const startOfMonth = DateTime.now().startOf("month").toISO();
+  const endOfMonth = DateTime.now().endOf("month").toISO();
+
+  const result =  await db.getFirstAsync<{total_spent: number | null;}>(`
+    SELECT SUM (amount) as total_spent
+    FROM transactions
+    WHERE type = 'credit' AND created_at BETWEEN ? AND ?    
+  `, [startOfMonth, endOfMonth]);
+
+  return result?.total_spent?? 0;
+}
+
 export const getMonthlyExpenses = async (): Promise<MonthlyExpense[]> => {
   const db = await getDatabase();
+
 
   const query = `
     SELECT 

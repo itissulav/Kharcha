@@ -1,8 +1,3 @@
-Sure, here’s a clean and professional `README.md` file for your **Kharcha** React Native financial tracker app using Firebase, Expo, and TypeScript:
-
----
-
-````markdown
 # 💸 Kharcha - Personal Finance Tracker
 
 Kharcha is a sleek, modern personal finance tracking app built with **React Native**, **Expo**, and **Firebase**. It allows users to manage their income, expenses, and savings seamlessly — all stored locally with rich visualizations and recurring transaction support.
@@ -39,10 +34,11 @@ Kharcha is a sleek, modern personal finance tracking app built with **React Nati
 ## 🛠 Setup
 
 ### 1. Clone the repo
+
 ```bash
 git clone https://github.com/itissulav/Kharcha.git
 cd Kharcha
-````
+```
 
 ### 2. Install dependencies
 
@@ -58,9 +54,9 @@ npm run start
 
 You can run it on:
 
-* Web: `npm run web`
-* Android: `npm run android`
-* iOS (Mac only): `npm run ios`
+- Web: `npm run web`
+- Android: `npm run android`
+- iOS (Mac only): `npm run ios`
 
 ---
 
@@ -107,8 +103,8 @@ const firebaseConfig = {
 
 ## 📸 Screenshots
 
-| Dashboard                                                | Transactions                                                 | Profile                                              |
-| -------------------------------------------------------- | ------------------------------------------------------------ | ---------------------------------------------------- |
+| Dashboard                                                        | Transactions                                                          | Profile                                                       |
+| ---------------------------------------------------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------- |
 | ![Dashboard](./assets/images/screenshots/homePageScreenshot.png) | ![Transaction](./assets/images/screenshots/transactionScreenshot.png) | ![Profile](./assets/images/screenshots/profileScreenshot.png) |
 
 ---
@@ -128,8 +124,8 @@ This project is licensed under the [MIT License](LICENSE).
 
 ## 💡 Future Plans
 
-* ✅ User authentication
-* ☁️ Firebase Cloud Sync
-* 📦 Export/Import data
-* 🔔 Expense alerts
-* 🌐 Multi-language support
+- ✅ User authentication
+- ☁️ Firebase Cloud Sync
+- 📦 Export/Import data
+- 🔔 Expense alerts
+- 🌐 Multi-language support

@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Dimensions,
   Image,
   Modal,
@@ -21,14 +20,14 @@ import CardOptionsModal from "@/components/CardOptionsModal";
 import EditAccountModal from "@/components/EditAccountModal";
 import StorageCard from "@/components/StorageCard";
 
-import { initDatabase, resetDatabase } from "@/db";
+import { initDatabase } from "@/db";
 import { getAllAccounts } from "@/db/accounts";
 import {
   getAllCategories,
   getTotalEarnedPerMonth,
-  getTotalSpentPerMonth
+  getTotalSpentPerMonth,
 } from "@/db/transactions";
-import { Account, Category, TopSpendingCategory } from "@/db/types";
+import { Account, Category, TopSpendingCategory, UserData } from "@/db/types";
 
 import AddCategoryModal from "@/components/AddCategoryModal";
 import AddTransactionModal from "@/components/AddTransactionModal";
@@ -38,13 +37,12 @@ import MonthlySpendingCard from "@/components/MonthlyBudgetCards";
 import TopCategoriesModal from "@/components/TopCategoriesModal";
 import { icons } from "@/constants/icons";
 import { useAuth } from "@/context/AuthContext";
+import { getUserPreference } from "@/db/user";
 import { handleDelete, handleLongPress } from "@/utilities/accountActions";
 import { handleRecurringTransactions } from "@/utilities/handleRecurringTransactions";
 import { router } from "expo-router";
 
 const screenWidth = Dimensions.get("window").width;
-
-
 
 export default function Index() {
   const { user, loading: isLoading } = useAuth();
@@ -58,17 +56,18 @@ export default function Index() {
   const [addCategoryModalVisible, setAddCategoryModalVisible] = useState(false);
 
   const [menuVisible, setMenuVisible] = useState(false);
-  const [addTransactionModalVisible, setAddTransactionModalVisible] = useState(false);
+  const [addTransactionModalVisible, setAddTransactionModalVisible] =
+    useState(false);
   const [totalSpent, setTotalSpent] = useState<number>();
   const [totalEarned, setTotalEarned] = useState<number>();
 
   const totalBalance = accounts.reduce((sum, acc) => sum + acc.balance, 0);
   const [incomeTabPressed, SetIncomeTabPressed] = useState(false);
   const [expenseTabPressed, setExpenseTabPressed] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState<TopSpendingCategory & { percentage?: number }>();
-
-
-
+  const [selectedCategory, setSelectedCategory] = useState<
+    TopSpendingCategory & { percentage?: number }
+  >();
+  const [userPreference, setUserPreference] = useState<UserData | undefined>();
 
   const fetchData = async () => {
     await initDatabase();
@@ -77,12 +76,13 @@ export default function Index() {
     const categories = await getAllCategories();
     const totalSpentPerMonth = await getTotalSpentPerMonth();
     const totalEarnedPerMonth = await getTotalEarnedPerMonth();
-
+    const userPreference = await getUserPreference();
 
     setAccounts(data as Account[]);
     setCategories(categories);
     setTotalSpent(totalSpentPerMonth);
     setTotalEarned(totalEarnedPerMonth);
+    setUserPreference(userPreference);
   };
 
   const handleRefresh = async () => {
@@ -92,21 +92,13 @@ export default function Index() {
     setRefreshing(false);
   };
 
-  const handleReset = async () => {
-    await resetDatabase();
-    Alert.alert("Database Reset", "All data has been reset.");
-    await fetchData();
-  };
-
   useEffect(() => {
     fetchData();
     handleRecurringTransactions(accounts);
   }, []);
 
-  if (isLoading){
-    return (
-      <ActivityIndicator></ActivityIndicator>
-    )
+  if (isLoading) {
+    return <ActivityIndicator></ActivityIndicator>;
   }
 
   return (
@@ -134,8 +126,10 @@ export default function Index() {
         />
 
         <AddCategoryModal
-          visible = {addCategoryModalVisible}
-          onClose={ () => {setAddCategoryModalVisible(false)}}
+          visible={addCategoryModalVisible}
+          onClose={() => {
+            setAddCategoryModalVisible(false);
+          }}
           onSave={() => {
             setAddCategoryModalVisible(false);
             fetchData();
@@ -161,12 +155,16 @@ export default function Index() {
             setEditAccountModalVisible(true);
             setOptionsVisible(false);
           }}
-          onDelete={() => handleDelete(selectedAccount, setAccounts, setOptionsVisible)}
+          onDelete={() =>
+            handleDelete(selectedAccount, setAccounts, setOptionsVisible)
+          }
         />
 
         {/* Profile Image and Greeting */}
         <View className="bg-primary rounded-2xl flex-row items-center justify-between px-4 py-2">
-          <Text className="text-light-100 text-2xl font-bold mt-4 mb-2">Hi, {user?.displayName || "there"}</Text>
+          <Text className="text-light-100 text-2xl font-bold mt-4 mb-2">
+            Hi, {user?.displayName || "there"}
+          </Text>
           <Pressable onPress={() => router.push("/profile")}>
             <Image
               source={icons.person}
@@ -180,87 +178,95 @@ export default function Index() {
           totalEarned={totalEarned || 0}
           totalSpent={totalSpent || 0}
           totalBalance={totalBalance}
+          monthly_spending_limit={userPreference?.spending_percentage ?? 100}
         />
 
         {/* Header */}
-        <Text className="text-light-100 text-2xl font-bold  mb-2">Your Balance</Text>
+        <Text className="text-light-100 text-2xl font-bold  mb-2">
+          Your Balance
+        </Text>
         <Text className="text-light-300 mb-6">
           Track and manage all your accounts in one place.
         </Text>
 
-
         {/* Storage Cards */}
-        <View className="mb-8">
-          <Text className="text-light-200 text-lg font-semibold mb-3">Storage Accounts</Text>
+        <View>
+          <Text className="text-light-200 text-lg font-semibold mb-3">
+            Storage Accounts
+          </Text>
           <View className="flex-row justify-center gap-4 items-center flex-wrap">
             {accounts.map((account) => (
               <StorageCard
                 key={account.id}
                 account={account}
                 onLongPress={() =>
-                  handleLongPress(account, setSelectedAccount, setOptionsVisible)
+                  handleLongPress(
+                    account,
+                    setSelectedAccount,
+                    setOptionsVisible
+                  )
                 }
               />
             ))}
             <AddCard onPress={() => setModalVisible(true)} />
           </View>
         </View>
-        {/* Reset Database Button */}
-        <TouchableOpacity
-          onPress={handleReset}
-          className="bg-error px-5 py-3 rounded-xl self-center"
-        >
-          <Text className="text-white font-semibold">Reset Database</Text>
-        </TouchableOpacity>
 
         <View className="bg-primary border rounded-2xl py-8 px-3 mt-5 ">
           <View className="flex-row justify-around mb-8">
-            <TouchableOpacity className={`w-[40%] ${expenseTabPressed?  "bg-accent": "" } px-5 py-3 rounded-xl self-center  border border-gray-800`}
+            <TouchableOpacity
+              className={`w-[40%] ${
+                expenseTabPressed ? "bg-accent" : ""
+              } px-5 py-3 rounded-xl self-center  border border-gray-800`}
               onPress={() => {
                 setExpenseTabPressed(true);
                 SetIncomeTabPressed(false);
               }}
             >
-                <Text className="text-white text-center">Expenses</Text>
+              <Text className="text-white text-center">Expenses</Text>
             </TouchableOpacity>
-            <TouchableOpacity className={`w-[40%] ${incomeTabPressed?  "bg-accent": "" } px-5 py-3 rounded-xl self-center border border-gray-800`}
-              onPress={() =>{
+            <TouchableOpacity
+              className={`w-[40%] ${
+                incomeTabPressed ? "bg-accent" : ""
+              } px-5 py-3 rounded-xl self-center border border-gray-800`}
+              onPress={() => {
                 SetIncomeTabPressed(true);
                 setExpenseTabPressed(false);
               }}
             >
-                <Text className="text-white text-center">Income</Text>
+              <Text className="text-white text-center">Income</Text>
             </TouchableOpacity>
           </View>
-            {expenseTabPressed?(
-              <View className="items-center justify-center gap-4">
-                <TopCategoriesModal
-                  onAdd={(category) => {
-                    setSelectedCategory(category as TopSpendingCategory & { percentage?: number })
-                    setAddTransactionModalVisible(true);
-                  }}
-                />
-                <MonthlySpendingCard
-                  totalEarned={totalEarned!}
-                  totalSpent={totalSpent!}
-                />
-              </View>
-            ): (
-              <View>
-                <IncomeTab
-                  onAdd={(category) => {
-                    setSelectedCategory(category);
-                    setAddTransactionModalVisible(true);
-                  }}
-                />
-              </View>
-            )}
+          {expenseTabPressed ? (
+            <View className="items-center justify-center gap-4">
+              <TopCategoriesModal
+                onAdd={(category) => {
+                  setSelectedCategory(
+                    category as TopSpendingCategory & { percentage?: number }
+                  );
+                  setAddTransactionModalVisible(true);
+                }}
+              />
+              <MonthlySpendingCard
+                totalEarned={totalEarned!}
+                totalSpent={totalSpent!}
+                monthly_spending_limit={
+                  userPreference?.spending_percentage ?? 100
+                }
+              />
+            </View>
+          ) : (
+            <View>
+              <IncomeTab
+                onAdd={(category) => {
+                  setSelectedCategory(category);
+                  setAddTransactionModalVisible(true);
+                }}
+              />
+            </View>
+          )}
         </View>
-
-
-
       </ScrollView>
-
 
       {/* Floating + Button */}
       <View className="absolute bottom-36 right-10 z-50">
@@ -302,7 +308,9 @@ export default function Index() {
                   resizeMode="contain"
                   tintColor="#AB8BFF"
                 />
-                <Text className="text-lg font-semibold text-light-100">Add Category</Text>
+                <Text className="text-lg font-semibold text-light-100">
+                  Add Category
+                </Text>
               </TouchableOpacity>
 
               <View className="my-1 h-[1px] bg-accent/20" />
@@ -321,7 +329,9 @@ export default function Index() {
                   resizeMode="contain"
                   tintColor="#AB8BFF"
                 />
-                <Text className="text-lg font-semibold text-light-100">Add Transaction</Text>
+                <Text className="text-lg font-semibold text-light-100">
+                  Add Transaction
+                </Text>
               </TouchableOpacity>
             </View>
           </View>

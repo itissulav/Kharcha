@@ -3,20 +3,24 @@ import { Dimensions, ScrollView, View } from "react-native";
 import MonthlySpendingCard from "./MonthlyBudgetCards";
 import TotalBalanceCard from "./TotalCard";
 
-
 const screenWidth = Dimensions.get("window").width;
 const cardWidth = screenWidth - 32; // Full width minus padding (16px on each side)
 
 type Props = {
-    totalSpent: number;
-    totalEarned: number;
-    totalBalance: number;
-}
+  totalSpent: number;
+  totalEarned: number;
+  totalBalance: number;
+  monthly_spending_limit: number;
+};
 
-const HomeCards = ({totalSpent, totalEarned, totalBalance}: Props) => {
+const HomeCards = ({
+  totalSpent,
+  totalEarned,
+  totalBalance,
+  monthly_spending_limit,
+}: Props) => {
   const [activeIndex, setActiveIndex] = useState(0);
   const scrollRef = useRef<ScrollView>(null);
-
 
   const handleScroll = (event: any) => {
     const scrollPosition = event.nativeEvent.contentOffset.x;
@@ -37,13 +41,11 @@ const HomeCards = ({totalSpent, totalEarned, totalBalance}: Props) => {
         snapToInterval={cardWidth}
         snapToAlignment="center"
         decelerationRate="fast"
-        bounces = {false}
+        bounces={false}
       >
         {/* Card 1 - Total Balance */}
         <View style={{ width: cardWidth }} className="px-4">
-          <TotalBalanceCard
-            totalBalance = {totalBalance}
-          />
+          <TotalBalanceCard totalBalance={totalBalance} />
         </View>
 
         {/* Card 2 - Monthly Spending */}
@@ -51,6 +53,7 @@ const HomeCards = ({totalSpent, totalEarned, totalBalance}: Props) => {
           <MonthlySpendingCard
             totalEarned={totalEarned}
             totalSpent={totalSpent}
+            monthly_spending_limit={monthly_spending_limit}
           />
         </View>
       </ScrollView>

@@ -3,7 +3,6 @@ import { Link, router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useState } from "react";
 import { Text, TextInput, TouchableOpacity, View } from "react-native";
-import LoadingScreen from "./LoadingScreen";
 
 export default function SignUpScreen() {
   const [name, setName] = useState("");
@@ -15,7 +14,6 @@ export default function SignUpScreen() {
   const [errors, setErrors] = useState<{ [key: string]: boolean }>({});
 
   const handleSignup = async () => {
-
     const newErrors: any = {};
     if (!name) newErrors.name = true;
     if (!phone) newErrors.phone = true;
@@ -25,7 +23,6 @@ export default function SignUpScreen() {
 
     if (Object.keys(newErrors).length > 0) return;
     setIsLoading(true);
-
 
     try {
       await registerUser({ name, email, password, phone });
@@ -42,7 +39,6 @@ export default function SignUpScreen() {
       errors[key] ? "border-red-500" : "border-muted-200"
     }`;
 
-    if (isLoading) return <LoadingScreen message="Signing in..."></LoadingScreen>
   return (
     <View className="flex-1 bg-primary justify-center px-6">
       <StatusBar style="light" />

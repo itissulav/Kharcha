@@ -1,4 +1,3 @@
-
 export type IconSetName =
   | "Ionicons"
   | "FontAwesome"
@@ -9,13 +8,17 @@ export type IconSetName =
 export type TopSpendingCategory = {
   category_id: number;
   category_name: string;
-  category_icon: string;      // icon name string (not just IoniconName, to cover all sets)
+  category_icon: string; // icon name string (not just IoniconName, to cover all sets)
   category_iconSet: string;
   category_limit: number;
-  spending_type: 'lifestyle' | 'essential';
+  spending_type: "lifestyle" | "essential";
   total: number;
 };
 
+export type UserPreference = {
+  spending_percentage: number;
+  lifeStyleLimit: number;
+};
 
 // database/types.ts
 export type Account = {
@@ -28,13 +31,12 @@ export type Account = {
 export type Transaction = {
   id: number;
   account_id: number;
-  type: 'credit' | 'debit';
+  type: "credit" | "debit";
   category: string;
   note: string;
   amount: number;
   created_at: string;
 };
-
 
 export type InsertTransactionInput = {
   account_id: number;
@@ -42,15 +44,23 @@ export type InsertTransactionInput = {
   amount: number;
   category_id: number;
   note?: string;
-  created_at?: string | null;  
+  created_at?: string | null;
   is_recurring: boolean;
-  recurrence_pattern: 'daily' | 'weekly' | 'monthly' | null;
+  recurrence_pattern: "daily" | "weekly" | "monthly" | null;
   recurrence_interval: number | null;
   next_occurrence: string | null;
 };
 
+export type UserData = {
+  monthly_income: number;
+  spending_percentage: number;
+  lifeStyleLimit: number;
+  showMonthlyLimitAlert: number;
+  showCategoryLimitAlert: number;
+};
+
 export type UpdateTransactionInput = {
-  transaction_id: number,
+  transaction_id: number;
   account_id: number;
   type: "credit" | "debit";
   amount: number;
@@ -59,14 +69,13 @@ export type UpdateTransactionInput = {
   created_at?: string;
 };
 
-
 export type Category = {
   id: number;
   name: string;
   icon: string;
   iconSet: string;
   category_limit: number;
-  spending_type: 'lifestyle' | 'essential';
+  spending_type: "lifestyle" | "essential";
 };
 export type InsertCategory = {
   name: string;
@@ -79,14 +88,14 @@ export type InsertCategory = {
 export type RecurringTransaction = {
   id: number;
   account_id: number;
-  type: 'credit' | 'debit';
+  type: "credit" | "debit";
   category: string;
   category_id: number;
   note: string;
   amount: number;
   created_at: string;
   is_recurring: Boolean;
-  recurrence_pattern: 'daily' | 'weekly' | 'monthly';
+  recurrence_pattern: "daily" | "weekly" | "monthly";
   recurrence_interval: number;
   next_occurrence: string;
 };
@@ -101,7 +110,7 @@ export type TransactionWithCategory = {
   created_at: string; // ISO timestamp
   category_name: string;
   category_icon: string;
-  spending_type: 'essential' | 'lifestyle';
+  spending_type: "essential" | "lifestyle";
 };
 
 export type CategoryTransactionWithPercent = {
@@ -109,17 +118,16 @@ export type CategoryTransactionWithPercent = {
   category_name: string;
   category_icon: string;
   category_iconSet: string;
-  spending_type: 'lifestyle' | 'essential';
+  spending_type: "lifestyle" | "essential";
   total: number;
   category_limit: number;
-  percentage: number;  // percentage of total spending in last 30 days
+  percentage: number; // percentage of total spending in last 30 days
 };
-
 
 export type CreditTransaction = {
   id: number;
   account_id: number;
-  type: 'credit';
+  type: "credit";
   category_id: number;
   note: string | null;
   amount: number;
@@ -130,6 +138,5 @@ export type CreditTransaction = {
   created_at: string;
   category_name: string;
   account_name: string;
-  spending_type: 'essential' | 'lifestyle';
+  spending_type: "essential" | "lifestyle";
 };
-

@@ -164,6 +164,8 @@ export default function AddTransactionModal({
     if (!success) {
       Alert.alert("Error", "Failed to add transaction.");
       return;
+    } else {
+      Alert.alert("Success!", "Transaction Successfully Added!");
     }
 
     // Reset form on success

@@ -5,12 +5,14 @@ export default function ConfirmDeleteModal({
   visible,
   onCancel,
   onConfirm,
-  message = "Are you sure you want to delete this item?",
+  messageHeading = "Confirm Deletion",
+  messageBody = "Are you sure you want to delete this item?",
 }: {
   visible: boolean;
   onCancel: () => void;
   onConfirm: () => void;
-  message?: string;
+  messageHeading?: string;
+  messageBody?: string;
 }) {
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
@@ -50,10 +52,12 @@ export default function ConfirmDeleteModal({
             className="bg-secondary p-4 rounded-2xl w-[70%] max-w-xs"
           >
             <Text className="text-light-100 text-lg font-semibold mb-3 text-center">
-              Confirm Deletion
+              {messageHeading}
             </Text>
 
-            <Text className="text-light-300 mb-4 text-center">{message}</Text>
+            <Text className="text-light-300 mb-4 text-center">
+              {messageBody}
+            </Text>
 
             <TouchableOpacity
               onPress={onConfirm}

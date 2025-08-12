@@ -1,11 +1,11 @@
 // database/index.ts
-import * as SQLite from 'expo-sqlite';
+import * as SQLite from "expo-sqlite";
 
 let db: SQLite.SQLiteDatabase;
 
 export const getDatabase = async () => {
   if (!db) {
-    db = await SQLite.openDatabaseAsync('finance.db');
+    db = await SQLite.openDatabaseAsync("finance.db");
     await db.execAsync(`PRAGMA journal_mode = WAL;`);
   }
   return db;
@@ -50,7 +50,10 @@ export const initDatabase = async () => {
       CREATE TABLE IF NOT EXISTS user_settings (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         monthly_income REAL,
-        spending_percentage REAL DEFAULT 100
+        spending_percentage REAL DEFAULT 100, 
+        lifeStyleLimit REAL DEFAULT 70, 
+        showMonthlyLimitAlert BOOLEAN DEFAULT 1,
+        showCategoryLimitAlert BOOLEAN Default 1
       );
     `);
 
@@ -59,12 +62,14 @@ export const initDatabase = async () => {
       INSERT OR IGNORE INTO categories (name, icon, iconSet, spending_type, category_limit)
       VALUES ('Salary', 'cash', 'Ionicons', 'essential', NULL);
     `);
-
+    await db.execAsync(`
+      INSERT OR IGNORE INTO user_settings (id, monthly_income, spending_percentage, lifeStyleLimit)
+      VALUES (1, 0, 100, 70);
+    `);
   } catch (error) {
     console.error(error);
   }
 };
-
 
 export const resetDatabase = async () => {
   const db = await getDatabase();
@@ -72,6 +77,7 @@ export const resetDatabase = async () => {
     DROP TABLE IF EXISTS transactions;
     DROP TABLE IF EXISTS categories;
     DROP TABLE IF EXISTS accounts;
+    DROP TABLE IF EXISTS user_settings;
   `);
   await initDatabase();
 };

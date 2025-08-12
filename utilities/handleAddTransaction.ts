@@ -1,8 +1,17 @@
+import { initDatabase } from "@/db";
 import { updateAccountBalance } from "@/db/accounts";
-import { checkCategoryLimit, insertTransaction } from "@/db/transactions";
-import { Account } from "@/db/types";
+import {
+  checkCategoryLimit,
+  getTotalEarnedPerMonth,
+  getTotalSpentPerMonth,
+  insertTransaction,
+} from "@/db/transactions";
+import { Account, UserData } from "@/db/types";
+import { getUserPreference, updateMonthlyCategoryLimitAlert } from "@/db/user";
 import * as Localization from "expo-localization";
+import { router } from "expo-router";
 import { DateTime } from "luxon";
+import { createThreeButtonAlert } from "./showAlert";
 
 type AddTransactionParams = {
   date: Date;
@@ -15,6 +24,22 @@ type AddTransactionParams = {
   recurrencePattern: "daily" | "weekly" | "monthly" | null;
   recurrenceInterval: string | null;
 };
+
+const onButton1 = () => {
+  router.push("/preference");
+};
+
+const onButton2 = async () => {
+  await initDatabase();
+
+  try {
+    const success = await updateMonthlyCategoryLimitAlert(false);
+  } catch (error) {
+    console.error(error);
+    alert("There was an error updating Preference");
+  }
+};
+const onButton3 = () => {};
 
 const getNextOccurrence = (
   currentDate: Date,
@@ -43,6 +68,8 @@ export const handleAddTransaction = async ({
     console.warn("Missing required fields");
     return false;
   }
+
+  const userPreference: UserData | undefined = await getUserPreference();
 
   const selectedAccount = accounts.find((a) => a.id === selectedAccountId);
   if (!selectedAccount) {
@@ -74,13 +101,55 @@ export const handleAddTransaction = async ({
 
     recurrence_pattern = recurrencePattern;
     recurrence_interval = parseInt(recurrenceInterval);
-    next_occurrence = getNextOccurrence(date, recurrence_pattern, recurrence_interval);
+    next_occurrence = getNextOccurrence(
+      date,
+      recurrence_pattern,
+      recurrence_interval
+    );
   }
 
-  const {isLimitExceeded, currentSpent, categoryLimit} = await checkCategoryLimit(selectedCategoryId, amount, type);
+  console.log("Alert Boolean: ", userPreference?.showMonthlyLimitAlert);
 
-  if (isLimitExceeded){
-    alert("Your Limit for this category for the month has exceeded");
+  if (type !== "credit" && (userPreference?.showMonthlyLimitAlert ?? true)) {
+    const totalSpent = await getTotalSpentPerMonth();
+    const totalEarned = await getTotalEarnedPerMonth();
+
+    console.log("Total Earned: ", totalEarned);
+    console.log(
+      "spending_percentage: ",
+      userPreference?.spending_percentage ?? "No data"
+    );
+
+    const monthly_limitExceeded =
+      totalSpent + amount >
+      ((userPreference?.spending_percentage ?? 0) / 100) * totalEarned;
+    console.log("Monthly Limit Exceeded", monthly_limitExceeded);
+
+    const { isLimitExceeded, currentSpent, categoryLimit } =
+      await checkCategoryLimit(selectedCategoryId, amount, type);
+
+    if (isLimitExceeded) {
+      alert("Your Limit for this category for the month has exceeded");
+    }
+
+    if (monthly_limitExceeded) {
+      createThreeButtonAlert({
+        alertTitle: "Limit Exceeded!",
+        alertMsg: "Your Monthly Limit has Exceeded!",
+        button1: "Change Limit",
+        button2: "Don't Show Again",
+        button3: "Ok",
+        onButton1: () => {
+          onButton1();
+        },
+        onButton2: () => {
+          onButton2();
+        },
+        onButton3: () => {
+          onButton3();
+        },
+      });
+    }
   }
 
   await insertTransaction({
@@ -96,7 +165,6 @@ export const handleAddTransaction = async ({
     next_occurrence,
   });
 
-
   const updatedBalance =
     type === "credit"
       ? selectedAccount.balance + amount
@@ -104,10 +172,9 @@ export const handleAddTransaction = async ({
   try {
     await updateAccountBalance(selectedAccountId, updatedBalance);
     selectedAccount.balance = updatedBalance;
-
   } catch (error) {
     console.error(error);
   }
 
-    return true;
+  return true;
 };

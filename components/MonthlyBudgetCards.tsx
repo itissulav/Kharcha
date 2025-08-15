@@ -1,3 +1,5 @@
+// MonthlySpendingCard.tsx
+
 import React from "react";
 import { Text, View } from "react-native";
 
@@ -12,41 +14,46 @@ const MonthlySpendingCard = ({
   totalEarned,
   monthly_spending_limit,
 }: Props) => {
-  const allowedSpend = totalEarned * (monthly_spending_limit / 100);
-  const totalPercentSpentOfSpendingLimit = (totalSpent / allowedSpend) * 100;
+  // Handle case where totalEarned is 0 to avoid division by zero
+  const allowedSpend =
+    totalEarned > 0 ? totalEarned * (monthly_spending_limit / 100) : 0;
+  const totalPercentSpentOfSpendingLimit =
+    allowedSpend > 0 ? (totalSpent / allowedSpend) * 100 : 0;
 
-  const limitExceeded = totalPercentSpentOfSpendingLimit > 100;
-
-  let color = "bg-accent";
-  if (
-    totalPercentSpentOfSpendingLimit >= 80 &&
-    totalPercentSpentOfSpendingLimit < 100 &&
-    !limitExceeded
-  ) {
-    color = "bg-warning";
-  } else if (totalPercentSpentOfSpendingLimit >= 100 || limitExceeded) {
-    color = "bg-red-800";
+  let color = "bg-accent"; // Default/Safe
+  if (totalPercentSpentOfSpendingLimit >= 80) {
+    color = "bg-red-600"; // Critical
+  } else if (totalPercentSpentOfSpendingLimit >= 40) {
+    color = "bg-warning"; // Caution
   }
 
   return (
-    <View className="bg-secondary rounded-2xl shadow-md shadow-black/20 p-6 w-full">
-      <Text className="text-light-300 text-base mb-1">Monthly Spent</Text>
-      <Text className="text-light-100 text-2xl font-bold mb-3">
-        Rs {totalSpent}
+    <View className="bg-secondary rounded-2xl p-5 shadow-lg shadow-black/20">
+      <View className="flex-row justify-between items-baseline mb-3">
+        <Text className="text-slate-300 text-base font-medium">
+          Monthly Spending
+        </Text>
+        <Text className="text-slate-400 text-sm font-semibold">
+          Limit: Rs {Math.round(allowedSpend)?.toLocaleString()}
+        </Text>
+      </View>
+
+      <Text className="text-white text-3xl font-bold mb-4">
+        Rs {totalSpent?.toLocaleString()}
       </Text>
 
       {/* Progress Bar */}
-      <View className="flex-row items-center gap-2">
-        <View className="flex-1 h-3 bg-dark-300 rounded-full overflow-hidden">
-          <View
-            className={`h-3 ${color} rounded-full`}
-            style={{
-              width: `${Math.min(totalPercentSpentOfSpendingLimit, 100)}%`,
-            }}
-          />
-        </View>
-        <Text className="text-light-300 text-xs font-semibold">
-          {Math.min(Math.round(totalPercentSpentOfSpendingLimit), 100)}%
+      <View className="h-2.5 bg-black/30 rounded-full w-full">
+        <View
+          className={`h-2.5 ${color} rounded-full`}
+          style={{
+            width: `${Math.min(totalPercentSpentOfSpendingLimit, 100)}%`,
+          }}
+        />
+      </View>
+      <View className="flex-row justify-end mt-1">
+        <Text className="text-slate-300 text-xs font-semibold">
+          {Math.round(totalPercentSpentOfSpendingLimit)}% of limit used
         </Text>
       </View>
     </View>

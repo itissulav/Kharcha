@@ -83,6 +83,14 @@ export default function Layout() {
         }}
       />
       <Tabs.Screen
+        name="categories"
+        options={{
+          tabBarIcon: ({ focused }) => (
+            <TabBarIcon focused={focused} icon={icons.categories} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="transaction"
         options={{
           tabBarIcon: ({ focused }) => (
@@ -95,14 +103,6 @@ export default function Layout() {
         options={{
           tabBarIcon: ({ focused }) => (
             <TabBarIcon focused={focused} icon={icons.statistics} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="preference"
-        options={{
-          tabBarIcon: ({ focused }) => (
-            <TabBarIcon focused={focused} icon={icons.preference} />
           ),
         }}
       />

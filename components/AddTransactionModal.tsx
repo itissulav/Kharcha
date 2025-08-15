@@ -1,4 +1,4 @@
-import { Account, Category, TopSpendingCategory } from "@/db/types";
+import { Account, Category, DailyCategoryDebit } from "@/db/types";
 import { handleAddTransaction } from "@/utilities/handleAddTransaction";
 import {
   validateAccount,
@@ -49,8 +49,9 @@ type Props = {
   onClose: () => void;
   onSuccess: () => void;
   accounts: Account[];
-  categories: Category[];
-  initialCategory?: (TopSpendingCategory & { percentage?: number }) | null;
+  categories: Category[] | DailyCategoryDebit[];
+  initialCategory?: DailyCategoryDebit | null;
+  initialType?: "credit" | "debit";
 };
 
 export default function AddTransactionModal({
@@ -60,19 +61,16 @@ export default function AddTransactionModal({
   accounts,
   categories,
   initialCategory = null,
+  initialType = "debit",
 }: Props) {
   const [selectedAccountId, setSelectedAccountId] = useState<number | null>(
     null
   );
-  const [selectedCategory, setSelectedCategory] = useState<Category | null>(
-    null
-  );
+  const [selectedCategory, setSelectedCategory] = useState<
+    DailyCategoryDebit | Category | null
+  >(categories[0]);
   const [amount, setAmount] = useState("");
-  const [type, setType] = useState<"credit" | "debit">(
-    initialCategory?.category_name?.toLowerCase() === "salary"
-      ? "credit"
-      : "debit"
-  );
+  const [type, setType] = useState<"credit" | "debit">(initialType);
   const [date, setDate] = useState(new Date());
 
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -96,17 +94,13 @@ export default function AddTransactionModal({
     if (visible) {
       if (initialCategory) {
         setSelectedCategory({
-          id: initialCategory.category_id,
-          name: initialCategory.category_name,
-          icon: initialCategory.category_icon,
-          iconSet: initialCategory.category_iconSet,
+          category_id: initialCategory.category_id,
+          category_name: initialCategory.category_name,
+          category_icon: initialCategory.category_icon,
+          category_iconSet: initialCategory.category_iconSet,
           category_limit: initialCategory.category_limit,
           spending_type: initialCategory.spending_type,
         });
-
-        if (initialCategory.category_name?.toLowerCase() === "salary") {
-          setType("credit");
-        }
       } else {
         // Optional: reset category if no initialCategory when modal opens
         setSelectedCategory(null);
@@ -154,7 +148,7 @@ export default function AddTransactionModal({
       amount: parsedAmount,
       type,
       selectedAccountId,
-      selectedCategoryId: selectedCategory!.id,
+      selectedCategoryId: selectedCategory!.category_id,
       accounts,
       isRecurring,
       recurrencePattern,
@@ -300,11 +294,11 @@ export default function AddTransactionModal({
                             {(() => {
                               const IconComponent =
                                 ICON_SETS[
-                                  selectedCategory.iconSet as keyof typeof ICON_SETS
+                                  selectedCategory.category_iconSet as keyof typeof ICON_SETS
                                 ];
                               return IconComponent ? (
                                 <IconComponent
-                                  name={selectedCategory.icon as any}
+                                  name={selectedCategory.category_icon as any}
                                   size={24}
                                   color="#38B2AC"
                                 />
@@ -317,7 +311,7 @@ export default function AddTransactionModal({
                               );
                             })()}
                             <Text className="text-white text-base">
-                              {selectedCategory.name}
+                              {selectedCategory.category_name}
                             </Text>
                           </View>
                           <Ionicons
@@ -347,7 +341,7 @@ export default function AddTransactionModal({
                           <ScrollView>
                             {categories.map((cat) => (
                               <TouchableOpacity
-                                key={cat.id}
+                                key={cat.category_id}
                                 className="flex-row items-center p-3 rounded-md mb-1"
                                 onPress={() => {
                                   setSelectedCategory(cat);
@@ -361,11 +355,11 @@ export default function AddTransactionModal({
                                 {(() => {
                                   const IconComponent =
                                     ICON_SETS[
-                                      cat.iconSet as keyof typeof ICON_SETS
+                                      cat.category_iconSet as keyof typeof ICON_SETS
                                     ];
                                   return IconComponent ? (
                                     <IconComponent
-                                      name={cat.icon as any}
+                                      name={cat.category_icon as any}
                                       size={28}
                                       color="#38B2AC"
                                     />
@@ -378,7 +372,7 @@ export default function AddTransactionModal({
                                   );
                                 })()}
                                 <Text className="text-light-100 text-lg ml-3">
-                                  {cat.name}
+                                  {cat.category_name}
                                 </Text>
                               </TouchableOpacity>
                             ))}

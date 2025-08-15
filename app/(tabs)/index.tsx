@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Dimensions,
   Image,
   Modal,
   Pressable,
@@ -27,22 +26,17 @@ import {
   getTotalEarnedPerMonth,
   getTotalSpentPerMonth,
 } from "@/db/transactions";
-import { Account, Category, TopSpendingCategory, UserData } from "@/db/types";
+import { Account, Category, UserData } from "@/db/types";
 
 import AddCategoryModal from "@/components/AddCategoryModal";
 import AddTransactionModal from "@/components/AddTransactionModal";
-import HomeCards from "@/components/HomeCards";
-import IncomeTab from "@/components/IncomeTab";
-import MonthlySpendingCard from "@/components/MonthlyBudgetCards";
-import TopCategoriesModal from "@/components/TopCategoriesModal";
+import TotalBalanceCard from "@/components/TotalCard";
 import { icons } from "@/constants/icons";
 import { useAuth } from "@/context/AuthContext";
 import { getUserPreference } from "@/db/user";
 import { handleDelete, handleLongPress } from "@/utilities/accountActions";
 import { handleRecurringTransactions } from "@/utilities/handleRecurringTransactions";
 import { router } from "expo-router";
-
-const screenWidth = Dimensions.get("window").width;
 
 export default function Index() {
   const { user, loading: isLoading } = useAuth();
@@ -64,9 +58,6 @@ export default function Index() {
   const totalBalance = accounts.reduce((sum, acc) => sum + acc.balance, 0);
   const [incomeTabPressed, SetIncomeTabPressed] = useState(false);
   const [expenseTabPressed, setExpenseTabPressed] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState<
-    TopSpendingCategory & { percentage?: number }
-  >();
   const [userPreference, setUserPreference] = useState<UserData | undefined>();
 
   const fetchData = async () => {
@@ -122,9 +113,7 @@ export default function Index() {
           onSuccess={fetchData}
           accounts={accounts}
           categories={categories}
-          initialCategory={selectedCategory}
         />
-
         <AddCategoryModal
           visible={addCategoryModalVisible}
           onClose={() => {
@@ -135,7 +124,6 @@ export default function Index() {
             fetchData();
           }}
         />
-
         {/* Modals */}
         <AddAccountModal
           visible={modalVisible}
@@ -159,7 +147,6 @@ export default function Index() {
             handleDelete(selectedAccount, setAccounts, setOptionsVisible)
           }
         />
-
         {/* Profile Image and Greeting */}
         <View className="bg-primary rounded-2xl flex-row items-center justify-between px-4 py-2">
           <Text className="text-light-100 text-2xl font-bold mt-4 mb-2">
@@ -173,22 +160,14 @@ export default function Index() {
             />
           </Pressable>
         </View>
-
-        <HomeCards
-          totalEarned={totalEarned || 0}
-          totalSpent={totalSpent || 0}
-          totalBalance={totalBalance}
-          monthly_spending_limit={userPreference?.spending_percentage ?? 100}
-        />
-
+        <TotalBalanceCard totalBalance={totalBalance} />
         {/* Header */}
-        <Text className="text-light-100 text-2xl font-bold  mb-2">
+        <Text className="text-light-100 text-2xl font-bold  mb-2 mt-4">
           Your Balance
         </Text>
         <Text className="text-light-300 mb-6">
           Track and manage all your accounts in one place.
         </Text>
-
         {/* Storage Cards */}
         <View>
           <Text className="text-light-200 text-lg font-semibold mb-3">
@@ -210,61 +189,6 @@ export default function Index() {
             ))}
             <AddCard onPress={() => setModalVisible(true)} />
           </View>
-        </View>
-
-        <View className="bg-primary border rounded-2xl py-8 px-3 mt-5 ">
-          <View className="flex-row justify-around mb-8">
-            <TouchableOpacity
-              className={`w-[40%] ${
-                expenseTabPressed ? "bg-accent" : ""
-              } px-5 py-3 rounded-xl self-center  border border-gray-800`}
-              onPress={() => {
-                setExpenseTabPressed(true);
-                SetIncomeTabPressed(false);
-              }}
-            >
-              <Text className="text-white text-center">Expenses</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              className={`w-[40%] ${
-                incomeTabPressed ? "bg-accent" : ""
-              } px-5 py-3 rounded-xl self-center border border-gray-800`}
-              onPress={() => {
-                SetIncomeTabPressed(true);
-                setExpenseTabPressed(false);
-              }}
-            >
-              <Text className="text-white text-center">Income</Text>
-            </TouchableOpacity>
-          </View>
-          {expenseTabPressed ? (
-            <View className="items-center justify-center gap-4">
-              <TopCategoriesModal
-                onAdd={(category) => {
-                  setSelectedCategory(
-                    category as TopSpendingCategory & { percentage?: number }
-                  );
-                  setAddTransactionModalVisible(true);
-                }}
-              />
-              <MonthlySpendingCard
-                totalEarned={totalEarned!}
-                totalSpent={totalSpent!}
-                monthly_spending_limit={
-                  userPreference?.spending_percentage ?? 100
-                }
-              />
-            </View>
-          ) : (
-            <View>
-              <IncomeTab
-                onAdd={(category) => {
-                  setSelectedCategory(category);
-                  setAddTransactionModalVisible(true);
-                }}
-              />
-            </View>
-          )}
         </View>
       </ScrollView>
 

@@ -1,8 +1,10 @@
+// TransactionView.tsx
+
 import CardOptionsModal from "@/components/CardOptionsModal";
 import ConfirmDeleteModal from "@/components/ConfirmDeleteModal";
 import EditTransactionModal from "@/components/EditTransactionModal";
 import InfoModal from "@/components/InfoModal";
-import TransactionCard from "@/components/TransactionCard"; // <-- your card UI
+import TransactionCard from "@/components/TransactionCard"; // <-- Using the new card
 import TransactionFilter from "@/components/TransactionFilter";
 import { initDatabase } from "@/db";
 import { getAllAccounts } from "@/db/accounts";
@@ -16,10 +18,10 @@ import { handleLongPressTransaction } from "@/utilities/accountActions";
 import { filterTransactions } from "@/utilities/filterTransactions";
 import { groupTransactionsByDate } from "@/utilities/groupTransactionByDate";
 import { Ionicons } from "@expo/vector-icons";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 
 import {
-  Dimensions,
+  ActivityIndicator,
   RefreshControl,
   ScrollView,
   Text,
@@ -27,281 +29,251 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { TabView } from "react-native-tab-view";
-
-const initialLayout = { width: Dimensions.get("window").width };
-type Route = {
-  key: string;
-  title: string;
-};
 
 export default function TransactionView() {
+  const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState<Category[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [refreshing, setRefreshing] = useState(false);
-  const [index, setIndex] = useState(0);
-  const [routes, setRoutes] = useState<any[]>([]);
-  const [transactionByFilter, settransactionByFilter] = useState<{
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  const [transactionByFilter, setTransactionByFilter] = useState<{
     [key: string]: TransactionWithCategory[];
   }>({});
-  const [transactionFilterVisible, setTransactionFilterVisible] =
-    useState(false);
   const [originalTransactionData, setOriginalTransactionData] = useState<{
     [key: string]: TransactionWithCategory[];
   }>({});
+
+  const [transactionFilterVisible, setTransactionFilterVisible] =
+    useState(false);
   const [selectedTransaction, setSelectedTransaction] =
     useState<TransactionWithCategory | null>(null);
   const [editTransactionVisible, setEditTransactionVisible] = useState(false);
-  const [CardOptionsModalVisible, setCardOptionsModalVisible] = useState(false);
+  const [cardOptionsModalVisible, setCardOptionsModalVisible] = useState(false);
   const [confirmDeleteModalVisible, setConfirmDeleteModalVisible] =
     useState(false);
   const [infoVisible, setInfoVisible] = useState(false);
 
-  const fetchAccount = async () => {
-    const accounts: Account[] = (await getAllAccounts()) as Account[];
-    setAccounts(accounts as Account[]);
-  };
-
-  const fetchTransactionByAccount = async () => {
-    const transactionsMap: { [key: string]: TransactionWithCategory[] } = {};
-    const routesList: any[] = [];
-
-    for (const account of accounts) {
-      const txns = (await getTransactionsByAccount(
-        account.id
-      )) as TransactionWithCategory[];
-      transactionsMap[account.id] = txns;
-      routesList.push({ key: String(account.id), title: account.name });
-    }
-
-    setOriginalTransactionData(transactionsMap); // <-- unfiltered backup
-    settransactionByFilter(transactionsMap); // <-- visible filtered data
-    setRoutes(routesList);
-  };
-
-  const fetchAllCategories = async () => {
-    const categories = await getAllCategories();
-    setCategories(categories);
-  };
-
-  const fetchData = async () => {
+  const fetchAllData = useCallback(async () => {
     try {
       await initDatabase();
-      await fetchAccount();
-      await fetchAllCategories();
-      await fetchTransactionByAccount();
+      const fetchedAccounts = (await getAllAccounts()) as Account[];
+      const fetchedCategories = await getAllCategories();
+      setAccounts(fetchedAccounts);
+      setCategories(fetchedCategories);
+
+      const transactionsMap: { [key: string]: TransactionWithCategory[] } = {};
+      for (const account of fetchedAccounts) {
+        const txns = (await getTransactionsByAccount(
+          account.id
+        )) as TransactionWithCategory[];
+        transactionsMap[account.id] = txns;
+      }
+
+      setOriginalTransactionData(transactionsMap);
+      setTransactionByFilter(transactionsMap);
     } catch (err) {
-      console.error(err);
+      console.error("Failed to fetch data:", err);
+    } finally {
+      setLoading(false);
     }
-  };
+  }, []);
 
-  const handleRefresh = async () => {
+  const handleRefresh = useCallback(async () => {
     setRefreshing(true);
-    await fetchData();
+    await fetchAllData();
     setRefreshing(false);
-  };
+  }, [fetchAllData]);
 
-  const renderScene = ({
-    route,
-  }: {
-    route: { key: string; title: string };
-  }) => {
-    const transactions = transactionByFilter[route.key] || [];
-    const grouped = groupTransactionsByDate(transactions);
-
-    return (
-      <ScrollView className="pt-4 gap-3" showsVerticalScrollIndicator={false}>
-        {Object.entries(grouped).map(([label, txns]) => (
-          <View key={label}>
-            <Text className="text-light-100 font-semibold text-lg mb-2 px-2">
-              {label}
-            </Text>
-            {txns.map((txn) => (
-              <TransactionCard
-                key={txn.id}
-                recentTransaction={txn}
-                onLongPress={() =>
-                  handleLongPressTransaction(
-                    txn,
-                    setSelectedTransaction,
-                    setCardOptionsModalVisible
-                  )
-                }
-              />
-            ))}
-          </View>
-        ))}
-      </ScrollView>
-    );
-  };
-
-  const handleFilters = async (filters: {
+  const handleFilters = (filters: {
     category: string | null;
     type: "debit" | "credit" | null;
     dateRange: "week" | "month" | "6months" | null;
   }) => {
     setTransactionFilterVisible(false);
-
     const filteredMap: { [key: string]: TransactionWithCategory[] } = {};
-
     for (const accountId in originalTransactionData) {
-      const originalTxns = originalTransactionData[accountId]; // <- always fresh
+      const originalTxns = originalTransactionData[accountId];
       filteredMap[accountId] = filterTransactions(originalTxns, filters);
     }
+    setTransactionByFilter(filteredMap);
+  };
 
-    settransactionByFilter(filteredMap);
+  const handleResetFilters = () => {
+    setTransactionByFilter(originalTransactionData);
+    setTransactionFilterVisible(false);
   };
 
   const handleTransactionDelete = async () => {
-    if (!selectedTransaction) {
-      return null;
-    }
-    await deleteTransaction(selectedTransaction?.id);
+    if (!selectedTransaction) return;
+    await deleteTransaction(selectedTransaction.id);
     setConfirmDeleteModalVisible(false);
-
-    fetchTransactionByAccount();
+    handleRefresh(); // Refresh data after delete
   };
 
   useEffect(() => {
-    fetchData();
-    fetchTransactionByAccount();
-  }, []);
+    fetchAllData();
+  }, [fetchAllData]);
+
+  const renderScene = () => {
+    if (loading || accounts.length === 0) {
+      return null;
+    }
+    const activeAccountId = accounts[activeIndex]?.id;
+    const transactions = transactionByFilter[activeAccountId] || [];
+    const grouped = groupTransactionsByDate(transactions);
+
+    if (transactions.length === 0) {
+      return (
+        <View className="items-center justify-center h-64 bg-secondary rounded-2xl mt-4">
+          <Ionicons name="archive-outline" size={48} color="#64748b" />
+          <Text className="text-slate-400 text-lg font-semibold mt-4">
+            No Transactions Found
+          </Text>
+          <Text className="text-slate-500 mt-1">This account is empty.</Text>
+        </View>
+      );
+    }
+
+    return (
+      <View className="mt-4">
+        {Object.entries(grouped).map(([label, txns]) => (
+          <View key={label} className="mb-6">
+            <Text className="text-slate-300 font-semibold text-base mb-3 px-1">
+              {label}
+            </Text>
+            <View className="gap-y-2">
+              {txns.map((txn) => (
+                <TransactionCard
+                  key={txn.id}
+                  recentTransaction={txn as TransactionWithCategory}
+                  onLongPress={() =>
+                    handleLongPressTransaction(
+                      txn,
+                      setSelectedTransaction,
+                      setCardOptionsModalVisible
+                    )
+                  }
+                />
+              ))}
+            </View>
+          </View>
+        ))}
+      </View>
+    );
+  };
 
   return (
     <SafeAreaView className="flex-1 bg-primary">
+      {/* All Modals */}
+      <CardOptionsModal
+        visible={cardOptionsModalVisible}
+        onClose={() => setCardOptionsModalVisible(false)}
+        onEdit={() => {
+          setEditTransactionVisible(true);
+          setCardOptionsModalVisible(false);
+        }}
+        onDelete={() => {
+          setCardOptionsModalVisible(false);
+          setConfirmDeleteModalVisible(true);
+        }}
+      />
+      <ConfirmDeleteModal
+        visible={confirmDeleteModalVisible}
+        onCancel={() => setConfirmDeleteModalVisible(false)}
+        onConfirm={handleTransactionDelete}
+      />
+      <InfoModal
+        infoVisible={infoVisible}
+        onClose={() => setInfoVisible(false)}
+      />
+      <EditTransactionModal
+        visible={editTransactionVisible}
+        onClose={() => setEditTransactionVisible(false)}
+        onSuccess={handleRefresh}
+        accounts={accounts}
+        categories={categories}
+        transaction={selectedTransaction}
+      />
+      <TransactionFilter
+        categories={categories}
+        visible={transactionFilterVisible}
+        onApply={handleFilters}
+        onReset={handleResetFilters}
+      />
+
       <ScrollView
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            colors={["#AB8BFF"]}
-            tintColor="#AB8BFF"
+            tintColor="#a78bfa"
           />
         }
-        className="flex-1 px-5"
-        contentContainerStyle={{ paddingBottom: 40 }}
         showsVerticalScrollIndicator={false}
       >
-        <View className="gap-4">
-          {/* Modal for Adding Entry */}
-
-          <CardOptionsModal
-            visible={CardOptionsModalVisible}
-            onClose={() => {
-              setCardOptionsModalVisible(false);
-            }}
-            onEdit={() => {
-              setEditTransactionVisible(true);
-              setCardOptionsModalVisible(false);
-            }}
-            onDelete={() => {
-              setCardOptionsModalVisible(false);
-              setConfirmDeleteModalVisible(true);
-            }}
-          />
-
-          <ConfirmDeleteModal
-            visible={confirmDeleteModalVisible}
-            onCancel={() => {
-              setConfirmDeleteModalVisible(false);
-            }}
-            onConfirm={() => {
-              handleTransactionDelete();
-            }}
-          />
-          <InfoModal
-            infoVisible={infoVisible}
-            onClose={() => {
-              setInfoVisible(false);
-            }}
-          />
-
-          <EditTransactionModal
-            visible={editTransactionVisible}
-            onClose={() => {
-              setEditTransactionVisible(false);
-            }}
-            onSuccess={() => {
-              fetchTransactionByAccount();
-            }}
-            accounts={accounts}
-            categories={categories}
-            transaction={selectedTransaction}
-          />
-
+        <View className="px-5 pt-8 pb-20">
           {/* Header */}
-          <Text className="text-light-100 text-2xl font-bold mb-2 mt-4">
-            Transactions Overview
-          </Text>
-          <Text className="text-light-300 mb-6">
-            Track where your money is going based on top spending categories.
-          </Text>
-
-          <TransactionFilter
-            categories={categories}
-            visible={transactionFilterVisible}
-            onApply={(filters) => handleFilters(filters)}
-            onReset={() => {
-              fetchTransactionByAccount();
-              setTransactionFilterVisible(false);
-            }}
-          />
-
-          <View className="mb-6">
-            <View className="flex-row justify-between items-center pr-2">
-              <View className="flex-row gap-2">
-                <Text className="text-light-200 text-lg font-semibold mb-3">
-                  Transactions by Account
-                </Text>
-                <TouchableOpacity onPress={() => setInfoVisible(true)}>
-                  <Ionicons
-                    name="information-circle-outline"
-                    size={24}
-                    color="#AB8BFF"
-                  />
-                </TouchableOpacity>
-              </View>
-
+          <View className="flex-row justify-between items-center mb-2 h-11">
+            <View className="flex-row items-center justify-around h-11">
+              <Text className="text-white text-3xl font-bold items-center h-11">
+                Transactions
+              </Text>
               <TouchableOpacity
-                onPress={() => {
-                  setTransactionFilterVisible(true);
-                }}
-                className="bg-accent px-6 py-2 rounded-2xl self-start shadow-md"
+                onPress={() => setInfoVisible(true)}
+                className="w-11 h-11 bg-secondary items-center justify-center"
               >
-                <Text className="text-white text-base font-semibold">
-                  Filter
-                </Text>
+                <Ionicons
+                  name="information-circle-outline"
+                  size={22}
+                  color="#a78bfa"
+                />
               </TouchableOpacity>
             </View>
-            <TabView
-              navigationState={{ index, routes }}
-              renderScene={renderScene}
-              onIndexChange={setIndex}
-              initialLayout={initialLayout}
-              style={{ height: 500 }}
-              renderTabBar={({ navigationState, jumpTo }) => (
-                <View className="flex-row gap-3 mb-3">
-                  {navigationState.routes.map((route, i) => (
-                    <TouchableOpacity
-                      key={route.key}
-                      onPress={() => jumpTo(route.key)}
-                      className={`px-4 py-2 rounded-full ${
-                        index === i ? "bg-accent" : "bg-muted-200"
+            <TouchableOpacity
+              onPress={() => setTransactionFilterVisible(true)}
+              className="w-11 h-11 bg-secondary items-center justify-center rounded-full"
+            >
+              <Ionicons name="filter" size={22} color="#a78bfa" />
+            </TouchableOpacity>
+          </View>
+          <Text className="text-slate-400 mb-8">
+            An overview of your spending and income.
+          </Text>
+
+          {loading ? (
+            <ActivityIndicator size="large" color="#a78bfa" className="mt-16" />
+          ) : (
+            <>
+              {/* Custom Tab Bar */}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ gap: 10, paddingHorizontal: 2 }}
+              >
+                {accounts.map((route, i) => (
+                  <TouchableOpacity
+                    key={route.id}
+                    onPress={() => setActiveIndex(i)}
+                    className={`px-5 py-2.5 rounded-full ${
+                      activeIndex === i ? "bg-accent" : "bg-secondary"
+                    }`}
+                  >
+                    <Text
+                      className={`font-semibold ${
+                        activeIndex === i ? "text-primary" : "text-white"
                       }`}
                     >
-                      <Text
-                        className={`${
-                          index === i ? "text-white" : "text-light-300"
-                        } text-sm font-medium`}
-                      >
-                        {route.title}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              )}
-            />
-          </View>
+                      {route.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+
+              {/* Content */}
+              {renderScene()}
+            </>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>

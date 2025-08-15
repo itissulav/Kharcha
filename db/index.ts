@@ -56,12 +56,6 @@ export const initDatabase = async () => {
         showCategoryLimitAlert BOOLEAN Default 1
       );
     `);
-
-    // Insert default Salary category if it doesn't exist
-    await db.execAsync(`
-      INSERT OR IGNORE INTO categories (name, icon, iconSet, spending_type, category_limit)
-      VALUES ('Salary', 'cash', 'Ionicons', 'essential', NULL);
-    `);
     await db.execAsync(`
       INSERT OR IGNORE INTO user_settings (id, monthly_income, spending_percentage, lifeStyleLimit)
       VALUES (1, 0, 100, 70);

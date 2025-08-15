@@ -10,7 +10,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import LoadingScreen from "./LoadingScreen";
@@ -22,33 +22,37 @@ export default function ProfileScreen() {
   const [bio, setBio] = useState("Tech enthusiast. Builder. Cat person.");
   const [confirmModalVisible, setConfirmModalVisible] = useState(false);
 
-  const handleLogOut = async() => {
+  const handleLogOut = async () => {
     setConfirmModalVisible(false);
     try {
       logOut();
-      router.replace("/login")
-    } catch (error) {
-      
-    }
-  }
+      router.replace("/login");
+    } catch (error) {}
+  };
 
-  if (isLoading) return (<LoadingScreen message='Logging Out...'></LoadingScreen>)
+  if (isLoading)
+    return <LoadingScreen message="Logging Out..."></LoadingScreen>;
 
   return (
     <SafeAreaView className="flex-1 bg-primary">
       <ScrollView contentContainerStyle={{ padding: 20, gap: 16 }}>
-
         <ConfirmLogoutModal
-          visible = {confirmModalVisible}
-          onCancel={() => {setConfirmModalVisible(false)}}
-          onConfirm={() => {handleLogOut();}}
-          message='Are you sure you want to Log Out?'
+          visible={confirmModalVisible}
+          onCancel={() => {
+            setConfirmModalVisible(false);
+          }}
+          onConfirm={() => {
+            handleLogOut();
+          }}
+          message="Are you sure you want to Log Out?"
         />
         {/* Header */}
         <View className="flex-row items-center justify-between mb-6">
           <Text className="text-2xl text-white font-bold">Profile</Text>
           <TouchableOpacity
-            onPress={() => {router.push('/settings')}}
+            onPress={() => {
+              router.push("/preference");
+            }}
           >
             <Ionicons name="settings-outline" size={24} color="#AB8BFF" />
           </TouchableOpacity>
@@ -56,8 +60,12 @@ export default function ProfileScreen() {
 
         {/* Avatar Section */}
         <View className="items-center mb-6">
-          <Text className="text-white text-lg font-semibold mt-4">{user?.displayName || "User"}</Text>
-          <Text className="text-light-300">{user?.email || "email@gmail.com"}</Text>
+          <Text className="text-white text-lg font-semibold mt-4">
+            {user?.displayName || "User"}
+          </Text>
+          <Text className="text-light-300">
+            {user?.email || "email@gmail.com"}
+          </Text>
         </View>
 
         {/* Editable Info Section */}
@@ -90,16 +98,21 @@ export default function ProfileScreen() {
         </View>
 
         {/* Actions */}
-        <TouchableOpacity className="bg-red-500 p-4 rounded-xl items-center"
-          onPress={() => {setConfirmModalVisible(true)}}
+        <TouchableOpacity
+          className="bg-red-500 p-4 rounded-xl items-center"
+          onPress={() => {
+            setConfirmModalVisible(true);
+          }}
         >
           <Text className="text-white font-bold">Logout</Text>
         </TouchableOpacity>
         <Pressable
-          onPress={() => {router.back()}}
+          onPress={() => {
+            router.back();
+          }}
         >
-          <View className='bg-accent px-4 py-4 rounded-lg w-[25%] flex-row justify-around items-center'>
-            <Ionicons name='arrow-back-sharp' size={18} color="#000000"/>
+          <View className="bg-accent px-4 py-4 rounded-lg w-[25%] flex-row justify-around items-center">
+            <Ionicons name="arrow-back-sharp" size={18} color="#000000" />
           </View>
         </Pressable>
       </ScrollView>

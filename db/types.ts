@@ -70,11 +70,11 @@ export type UpdateTransactionInput = {
 };
 
 export type Category = {
-  id: number;
-  name: string;
-  icon: string;
-  iconSet: string;
-  category_limit: number;
+  category_id: number;
+  category_name: string;
+  category_icon: string;
+  category_iconSet: string;
+  category_limit: number | null;
   spending_type: "lifestyle" | "essential";
 };
 export type InsertCategory = {
@@ -122,6 +122,31 @@ export type CategoryTransactionWithPercent = {
   total: number;
   category_limit: number;
   percentage: number; // percentage of total spending in last 30 days
+};
+// types.ts (or add to your existing types file)
+// types.ts
+export type DailyCategoryDebit = {
+  category_id: number;
+  category_name: string;
+  category_icon: string;
+  category_iconSet: string;
+  spending_type: "essential" | "lifestyle";
+  category_limit: number | null;
+  total: number; // daily total for that category
+  month_total: number; // total spent in this month for that category
+  transaction_date: string; // format "YYYY-MM-DD"
+};
+
+export type DailyCategoryCredit = {
+  category_id: number;
+  category_name: string;
+  category_icon: string;
+  category_iconSet: string;
+  spending_type: "essential" | "lifestyle";
+  category_limit: number | null;
+  total: number;
+  month_total: number; // total spent in this month for that category
+  transaction_date: string; // Format: "YYYY-MM-DD"
 };
 
 export type CreditTransaction = {

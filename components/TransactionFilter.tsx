@@ -3,7 +3,7 @@ import { Modal, ScrollView, Text, TouchableOpacity, View } from "react-native";
 
 type Props = {
   visible: boolean;
-  categories: { name: string; icon: string }[];
+  categories: { category_name: string; category_icon: string }[];
   onApply: (filters: {
     category: string | null;
     type: "debit" | "credit" | null;
@@ -61,13 +61,17 @@ export default function TransactionFilter({
               </TouchableOpacity>
               {categories.map((cat) => (
                 <TouchableOpacity
-                  key={cat.name}
-                  onPress={() => setSelectedCategory(cat.name)}
+                  key={cat.category_name}
+                  onPress={() => setSelectedCategory(cat.category_name)}
                   className={`px-4 py-2 mr-2 rounded-full ${
-                    selectedCategory === cat.name ? "bg-accent" : "bg-dark-200"
+                    selectedCategory === cat.category_name
+                      ? "bg-accent"
+                      : "bg-dark-200"
                   }`}
                 >
-                  <Text className="text-white font-medium">{cat.name}</Text>
+                  <Text className="text-white font-medium">
+                    {cat.category_name}
+                  </Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>

@@ -1,4 +1,4 @@
-import { DailyCategoryCredit } from "@/db/types";
+import { DailyCategoryDebit } from "@/db/types";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
 import {
@@ -11,11 +11,11 @@ import {
 import CategoryCard from "./CategoryCard";
 
 type Props = {
-  sevenDaysCategoryCredit: DailyCategoryCredit[][];
-  onAdd: (category: DailyCategoryCredit) => void;
+  sevenDaysCategoryDebit: DailyCategoryDebit[][];
+  onAdd: (category: DailyCategoryDebit) => void;
 };
 
-const IncomeTab = ({ sevenDaysCategoryCredit, onAdd }: Props) => {
+const ExpenseTab = ({ sevenDaysCategoryDebit, onAdd }: Props) => {
   const [selectedDayIndex, setSelectedDayIndex] = useState(6);
   const screenWidth = Dimensions.get("window").width;
 
@@ -27,8 +27,8 @@ const IncomeTab = ({ sevenDaysCategoryCredit, onAdd }: Props) => {
   useEffect(() => {
     setLeftButtonDisabled(selectedDayIndex === 0);
     setRightDisabledButton(selectedDayIndex === 6);
-    setExpensePerDay(expenseByDay(sevenDaysCategoryCredit, selectedDayIndex));
-  }, [selectedDayIndex, sevenDaysCategoryCredit]);
+    setExpensePerDay(expenseByDay(sevenDaysCategoryDebit, selectedDayIndex));
+  }, [selectedDayIndex, sevenDaysCategoryDebit]);
 
   const getDayLabel = (index: number) => {
     const today = new Date();
@@ -47,7 +47,7 @@ const IncomeTab = ({ sevenDaysCategoryCredit, onAdd }: Props) => {
   };
 
   const expenseByDay = (
-    data: DailyCategoryCredit[][],
+    data: DailyCategoryDebit[][],
     index: number
   ): number => {
     if (!data[index]) return 0;
@@ -55,7 +55,7 @@ const IncomeTab = ({ sevenDaysCategoryCredit, onAdd }: Props) => {
   };
 
   const categoriesForSelectedDay =
-    sevenDaysCategoryCredit[selectedDayIndex] || [];
+    sevenDaysCategoryDebit[selectedDayIndex] || [];
 
   return (
     <ScrollView className="flex-1 bg-primary p-4 mb-20">
@@ -111,7 +111,7 @@ const IncomeTab = ({ sevenDaysCategoryCredit, onAdd }: Props) => {
         {expensePerDay > 0 ? (
           <>
             <Text className="text-gray-300 text-sm mb-1">
-              Total earned on {getDayLabel(date)}
+              Total spent on {getDayLabel(date)}
             </Text>
             <Text className="text-white text-4xl font-bold">
               Rs {expensePerDay.toFixed(2)}
@@ -126,7 +126,7 @@ const IncomeTab = ({ sevenDaysCategoryCredit, onAdd }: Props) => {
               style={{ marginBottom: 6 }}
             />
             <Text className="text-gray-300 text-sm">
-              No income recorded for this day
+              No expenses recorded for this day
             </Text>
           </>
         )}
@@ -134,14 +134,14 @@ const IncomeTab = ({ sevenDaysCategoryCredit, onAdd }: Props) => {
 
       {/* Section Title */}
       <Text className="text-white text-xl font-bold mb-3">
-        Income Breakdown
+        Expense Breakdown
       </Text>
 
       {/* Categories */}
       <ScrollView showsVerticalScrollIndicator={false}>
         <View className="flex-row flex-wrap justify-between gap-y-4">
           {categoriesForSelectedDay.length > 0 ? (
-            categoriesForSelectedDay.map((day) => (
+            categoriesForSelectedDay.map((day, index) => (
               <CategoryCard
                 key={day.category_id}
                 category={day}
@@ -163,7 +163,7 @@ const IncomeTab = ({ sevenDaysCategoryCredit, onAdd }: Props) => {
                 Nothing to break down
               </Text>
               <Text className="text-gray-500 text-sm text-center px-10">
-                Add some income for {getDayLabel(date)} to see them here.
+                Add some expenses for {getDayLabel(date)} to see them here.
               </Text>
             </View>
           )}
@@ -173,4 +173,4 @@ const IncomeTab = ({ sevenDaysCategoryCredit, onAdd }: Props) => {
   );
 };
 
-export default IncomeTab;
+export default ExpenseTab;

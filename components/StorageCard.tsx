@@ -7,13 +7,12 @@ export default function StorageCard({
   account,
   onLongPress,
 }: {
-  account: Account,
+  account: Account;
   onLongPress?: () => void;
 }) {
-
-  const icon = images[account.name.toLowerCase() as keyof typeof images]
-  const amount = account.balance
-  const label = account.name
+  const icon = images[account.name.toLowerCase() as keyof typeof images];
+  const amount = account.balance;
+  const label = account.name;
 
   return (
     <Pressable
@@ -24,7 +23,11 @@ export default function StorageCard({
 
       <View>
         <Text className="text-light-300 text-sm">{label}</Text>
-        <Text className="text-teal-500 text-xl font-bold mt-1">
+        <Text
+          className={`${
+            amount > 0 ? "text-teal-500" : "text-red-500"
+          } text-xl font-bold mt-1`}
+        >
           Rs. {amount}
         </Text>
       </View>

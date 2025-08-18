@@ -60,7 +60,7 @@ export default function Layout() {
           paddingTop: 10,
           paddingBottom: 10,
           justifyContent: "center",
-          marginHorizontal: 70,
+          marginHorizontal: 30,
           marginBottom: 34,
           borderRadius: 40,
           backgroundColor: "#030014", // pure black base
@@ -103,6 +103,14 @@ export default function Layout() {
         options={{
           tabBarIcon: ({ focused }) => (
             <TabBarIcon focused={focused} icon={icons.statistics} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="budget"
+        options={{
+          tabBarIcon: ({ focused }) => (
+            <TabBarIcon focused={focused} icon={icons.budget} />
           ),
         }}
       />

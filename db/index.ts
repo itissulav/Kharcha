@@ -49,7 +49,7 @@ export const initDatabase = async () => {
 
       CREATE TABLE IF NOT EXISTS user_settings (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        monthly_income REAL,
+        monthly_budget REAL,
         spending_percentage REAL DEFAULT 100, 
         lifeStyleLimit REAL DEFAULT 70, 
         showMonthlyLimitAlert BOOLEAN DEFAULT 1,
@@ -57,8 +57,8 @@ export const initDatabase = async () => {
       );
     `);
     await db.execAsync(`
-      INSERT OR IGNORE INTO user_settings (id, monthly_income, spending_percentage, lifeStyleLimit)
-      VALUES (1, 0, 100, 70);
+      INSERT OR IGNORE INTO user_settings (id, monthly_budget, spending_percentage, lifeStyleLimit)
+      VALUES (1, 20000, 100, 70);
     `);
   } catch (error) {
     console.error(error);

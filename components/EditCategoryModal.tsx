@@ -1,5 +1,5 @@
 import { updateCategory } from "@/db/transactions";
-import { CategoryTransactionWithPercent } from "@/db/types";
+import { CategoryBudget, CategoryTransactionWithPercent } from "@/db/types";
 import {
   Feather,
   FontAwesome,
@@ -42,7 +42,7 @@ export default function EditCategoryModal({
   onClose,
   onSave,
 }: {
-  category: CategoryTransactionWithPercent | null;
+  category: CategoryTransactionWithPercent | null | CategoryBudget;
   visible: boolean;
   onClose: () => void;
   onSave: () => void;

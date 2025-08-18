@@ -52,11 +52,21 @@ export type InsertTransactionInput = {
 };
 
 export type UserData = {
-  monthly_income: number;
+  monthly_budget: number;
   spending_percentage: number;
   lifeStyleLimit: number;
   showMonthlyLimitAlert: number;
   showCategoryLimitAlert: number;
+};
+
+export type CategoryBudget = {
+  category_id: number;
+  category_name: string;
+  category_icon: string;
+  category_iconSet: string;
+  category_limit: number;
+  month_total: number;
+  spending_type: "lifestyle" | "essential";
 };
 
 export type UpdateTransactionInput = {
@@ -104,6 +114,7 @@ export type TransactionWithCategory = {
   id: number;
   account_id: number;
   category_id: number;
+  category_iconSet: string;
   amount: number;
   note: string | null;
   type: "credit" | "debit";

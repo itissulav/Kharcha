@@ -21,19 +21,14 @@ import StorageCard from "@/components/StorageCard";
 
 import { initDatabase } from "@/db";
 import { getAllAccounts } from "@/db/accounts";
-import {
-  getAllCategories,
-  getTotalEarnedPerMonth,
-  getTotalSpentPerMonth,
-} from "@/db/transactions";
-import { Account, Category, UserData } from "@/db/types";
+import { getAllCategories } from "@/db/transactions";
+import { Account, Category } from "@/db/types";
 
 import AddCategoryModal from "@/components/AddCategoryModal";
 import AddTransactionModal from "@/components/AddTransactionModal";
 import TotalBalanceCard from "@/components/TotalCard";
 import { icons } from "@/constants/icons";
 import { useAuth } from "@/context/AuthContext";
-import { getUserPreference } from "@/db/user";
 import { handleDelete, handleLongPress } from "@/utilities/accountActions";
 import { handleRecurringTransactions } from "@/utilities/handleRecurringTransactions";
 import { router } from "expo-router";
@@ -58,22 +53,20 @@ export default function Index() {
   const totalBalance = accounts.reduce((sum, acc) => sum + acc.balance, 0);
   const [incomeTabPressed, SetIncomeTabPressed] = useState(false);
   const [expenseTabPressed, setExpenseTabPressed] = useState(true);
-  const [userPreference, setUserPreference] = useState<UserData | undefined>();
 
   const fetchData = async () => {
+    console.log("Nothing initialized");
     await initDatabase();
+    console.log("Database Initialized");
 
     const data = await getAllAccounts();
+    console.log("Fetched Data");
+
     const categories = await getAllCategories();
-    const totalSpentPerMonth = await getTotalSpentPerMonth();
-    const totalEarnedPerMonth = await getTotalEarnedPerMonth();
-    const userPreference = await getUserPreference();
+    console.log("Accounts Fetched");
 
     setAccounts(data as Account[]);
     setCategories(categories);
-    setTotalSpent(totalSpentPerMonth);
-    setTotalEarned(totalEarnedPerMonth);
-    setUserPreference(userPreference);
   };
 
   const handleRefresh = async () => {

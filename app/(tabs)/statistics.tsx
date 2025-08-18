@@ -55,15 +55,22 @@ const StatisticsScreen = () => {
   const screenWidth = Dimensions.get("window").width;
 
   const fetchData = useCallback(async () => {
+    console.log("Nothing Fetched! for Statistics");
     await initDatabase();
+    console.log("Database Initialized!");
+
     const monthlyExpenses = await getMonthlyExpenses();
     setExpenseByMonth(monthlyExpenses);
 
+    console.log("Monthly Expense Fetched");
+
     const userPreference = await getUserPreference();
     setUserData(userPreference);
+    console.log("User Preference Fetched");
 
     const monthlyEarning = await getMonthlyEarning();
     setEarningByMonth(monthlyEarning);
+    console.log("Monthly Earning Fetched");
 
     const categoriesWithTransactions = await getCategoryWithTransaction();
     const total = categoriesWithTransactions.reduce(

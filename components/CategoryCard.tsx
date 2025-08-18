@@ -1,3 +1,5 @@
+// CategoryCard.tsx
+
 import { DailyCategoryCredit, DailyCategoryDebit } from "@/db/types";
 import {
   Feather,
@@ -38,25 +40,28 @@ export default function CategoryCard({ category, onAdd, type }: Props) {
       ? Math.round((monthTotal / limit) * 100)
       : null;
 
+  console.log(
+    `Month total for category : ${category_name} is ${monthTotal} and the percentage is: ${percentage} limt is: ${limit}`
+  );
+
+  // Colors & borders (matching TransactionCard style)
   let borderColor = "border-gray-700";
-  let iconColor = "text-teal-400";
   let fontColor = "text-gray-200";
 
   if (type === "expense" && percentage !== null) {
-    iconColor = "text-blue-400";
     if (percentage >= 80) {
       borderColor = "border-red-600";
-      fontColor = "text-red-600";
-      iconColor = "text-red-600";
+      fontColor = "text-red-400";
     } else if (percentage >= 40) {
       borderColor = "border-yellow-500";
-      fontColor = "text-yellow-500";
-      iconColor = "text-yellow-400";
+      fontColor = "text-yellow-400";
     } else {
       borderColor = "border-teal-500";
-      fontColor = "text-teal-400";
-      iconColor = "text-teal-300";
+      fontColor = "text-teal-300";
     }
+  } else if (type === "income") {
+    borderColor = "border-green-500";
+    fontColor = "text-green-400";
   }
 
   if (!IconComponent) {
@@ -69,19 +74,19 @@ export default function CategoryCard({ category, onAdd, type }: Props) {
 
   return (
     <TouchableOpacity
-      className={`flex-row items-center bg-gray-800 rounded-xl border ${borderColor} p-3 w-[48%] mb-3`}
       onPress={() => onAdd?.(category)}
-      activeOpacity={0.7}
+      activeOpacity={0.8}
+      className={`flex-row items-center bg-secondary p-4 rounded-xl mb-3 shadow-sm border-l-4 ${borderColor} w-[48%]`}
     >
       {/* Icon */}
-      <View className="w-12 h-12 rounded-full bg-black/40 items-center justify-center mr-3">
+      <View className="w-12 h-12 rounded-full bg-black/30 items-center justify-center mr-3">
         <IconComponent name={category_icon as any} size={24} color="white" />
       </View>
 
       {/* Text Section */}
       <View className="flex-1">
         <Text
-          className="text-gray-200 font-semibold text-base mb-1"
+          className="text-light-100 text-base font-semibold"
           numberOfLines={1}
         >
           {category_name}
@@ -94,7 +99,7 @@ export default function CategoryCard({ category, onAdd, type }: Props) {
         )}
 
         {percentage !== null && (
-          <Text className={`text-sm font-semibold ${fontColor}`}>
+          <Text className={`text-xs font-semibold ${fontColor}`}>
             {percentage}% of limit
           </Text>
         )}

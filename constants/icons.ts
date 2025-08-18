@@ -7,4 +7,5 @@ export const icons = {
   person: require("../assets/icons/person.png"),
   preference: require("../assets/icons/preference.png"),
   categories: require("../assets/icons/categories.png"),
+  budget: require("../assets/icons/budget.png"),
 };

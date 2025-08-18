@@ -7,7 +7,7 @@ export const getUserPreference = async () => {
   try {
     const result = await db.getFirstAsync(
       `SELECT 
-      monthly_income as monthly_income,
+      monthly_budget as monthly_budget,
       spending_percentage as spending_percentage,
       lifeStyleLimit as lifeStyleLimit,
       showMonthlyLimitAlert as showMonthlyLimitAlert,

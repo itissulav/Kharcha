@@ -3,6 +3,7 @@ import { DateTime } from "luxon";
 import { getDatabase } from "./index";
 import {
   Category,
+  CategoryBudget,
   CategoryTransactionWithPercent,
   CreditTransaction,
   DailyCategoryCredit,
@@ -147,7 +148,8 @@ export const getTransactionsByAccount = async (accountId: number) => {
       transactions.created_at,
       categories.name as category_name,
       categories.icon as category_icon,
-      categories.spending_type as spending_type
+      categories.spending_type as spending_type,
+      categories.iconSet as category_iconSet
     FROM transactions
     JOIN categories ON transactions.category_id = categories.id
     WHERE transactions.account_id = ?
@@ -722,3 +724,54 @@ export const getRecurringTransactions = async (): Promise<
     return [];
   }
 };
+
+// Type for user budget settings
+export type UserBudgetSettings = {
+  monthly_budget: number;
+  spending_percentage: number;
+  lifeStyleLimit: number;
+  showMonthlyLimitAlert: boolean;
+  showCategoryLimitAlert: boolean;
+};
+
+// 1. Fetch user budget settings
+export async function getUserBudgetSettings(): Promise<UserBudgetSettings> {
+  const db = await getDatabase();
+  const results = await db.getAllAsync<UserBudgetSettings>(`
+    SELECT 
+      monthly_budget, 
+      spending_percentage, 
+      lifeStyleLimit,
+      showMonthlyLimitAlert,
+      showCategoryLimitAlert
+    FROM user_settings
+    WHERE id = 1
+  `);
+
+  return results[0]; // only one row
+}
+
+// 2. Fetch category budgets with spent amount
+export async function getCategoryBudgets(): Promise<CategoryBudget[]> {
+  const db = await getDatabase();
+
+  const results = await db.getAllAsync<CategoryBudget>(`
+    SELECT 
+      c.id AS category_id,
+      c.name As category_name,
+      c.icon AS category_icon,
+      c.iconSet AS category_iconSet,
+      c.spending_type AS spending_type,
+      c.category_limit,
+      IFNULL(SUM(t.amount), 0) as month_total
+    FROM categories c
+    LEFT JOIN transactions t 
+      ON c.id = t.category_id 
+      AND t.type = 'debit'
+      AND strftime('%Y-%m', t.created_at) = strftime('%Y-%m', 'now')
+    GROUP BY c.id, c.name, c.icon, c.iconSet, c.category_limit
+    ORDER BY c.name ASC
+  `);
+
+  return results;
+}
